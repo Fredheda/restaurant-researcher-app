@@ -49,16 +49,16 @@ export function ChatPanel({
   }
 
   return (
-    <aside className="flex w-72 flex-col border-l border-gray-200 bg-gray-50 p-3">
-      <div className="mb-2 font-semibold">Restaurant Researcher</div>
+    <aside className="flex w-72 flex-col border-l border-hairline bg-surface p-3">
+      <div className="mb-2 font-display text-lg text-navy">Restaurant Researcher</div>
       <div data-testid="chat-messages" className="flex-1 space-y-2 overflow-y-auto text-sm">
         {messages.map((m) => (
           <div
             key={m.id}
             className={
               m.role === "user"
-                ? "ml-auto max-w-[85%] rounded-lg bg-blue-100 px-2 py-1"
-                : "text-gray-500"
+                ? "ml-auto max-w-[85%] rounded-sm bg-navy px-2 py-1 text-surface"
+                : "text-navy-muted"
             }
           >
             {m.role === "status" ? `• ${m.text}` : m.text}
@@ -71,7 +71,7 @@ export function ChatPanel({
           onChange={(e) => setInput(e.target.value)}
           disabled={busy}
           placeholder="Ask about a place…"
-          className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+          className="w-full rounded-sm border border-hairline bg-bg px-2 py-1.5 text-sm text-navy"
         />
       </form>
     </aside>
