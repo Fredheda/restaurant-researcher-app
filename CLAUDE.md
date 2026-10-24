@@ -42,4 +42,11 @@ The Docker image installs with npm 12.0.2 on Node 24; CI does the same
 (`.github/workflows/ci.yml`), running the tests and the lint, type-check and
 build checks on every pull request and every push to `main`.
 
+`.github/workflows/claude-review.yml` posts an AI security-first review when a
+PR is opened and on every push to it; the repo owner can also request one by
+commenting `@claude`. It is comment-only and authenticates with the
+`CLAUDE_CODE_OAUTH_TOKEN` repo secret, which expires about 2027-10-24: renew
+with `claude setup-token`, then `gh secret set CLAUDE_CODE_OAUTH_TOKEN`. If
+subscription auth is refused, switch the action input to `anthropic_api_key`.
+
 `next-env.d.ts` and `*.tsbuildinfo` are generated and gitignored.
