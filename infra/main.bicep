@@ -78,6 +78,19 @@ resource frontend 'Microsoft.App/containerApps@2025-01-01' = {
         external: true
         targetPort: 3000
         transport: 'auto'
+        // ARM's PUT on this Container App treats the whole `ingress` object
+        // as authoritative, so any redeploy that omits customDomains wipes
+        // the binding. restaurants.frederikheda.com was originally bound
+        // imperatively (outside Bicep, via `az containerapp hostname bind`);
+        // declaring it here makes every future deploy preserve it instead
+        // of resetting it.
+        customDomains: [
+          {
+            name: 'restaurants.frederikheda.com'
+            bindingType: 'SniEnabled'
+            certificateId: '${environment.id}/managedCertificates/mc-cae-restaurant-restaurants-fred-8760'
+          }
+        ]
       }
       registries: [
         {
