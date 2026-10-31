@@ -11,7 +11,7 @@ Website for the `restaurant-researcher` skill: venue research as a card board wi
 
 ## Commands
 
-Run the app and the four checks (`npm test`, `npm run lint`, `npx tsc --noEmit`, `npm run build`) from `frontend/`; see `docs/development.md`. From the repo root, `./scripts/ship.sh` deploys code (refuses a dirty tree) and `./infra/deploy.sh` deploys infra.
+Run the app and the four checks (`npm test`, `npm run lint`, `npx tsc --noEmit`, `npm run build`) from `frontend/`; see `docs/development.md`. Code deploys with the manual **Deploy** workflow (see `deployment/README.md`); `./scripts/ship.sh` is the laptop fallback and `./infra/deploy.sh` deploys infra (laptop only).
 
 The Docker image and CI both install with npm 12.0.2 on Node 24. `ci.yml` runs on pull requests only (nothing runs on a merge to `main`); a docs-only PR (`*.md` or `docs/`) skips its jobs, and a draft PR skips the `build` job. Run `./scripts/ci-local.sh` (every `ci.yml` check, in CI order) green before `gh pr ready`. `next-env.d.ts` and `*.tsbuildinfo` are generated and gitignored.
 

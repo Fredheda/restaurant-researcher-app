@@ -5,7 +5,8 @@ name: CI
 # Runs on pull requests only: a merge to main starts no run, because the PR
 # already ran the same checks. A draft PR runs only the light jobs (changes,
 # checks); the build runs once the PR is ready for review. A newer push to the
-# same PR cancels the run that is still going.
+# same PR cancels the run that is still going. CI never builds or deploys an
+# image: the manual Deploy workflow (deploy.yml) does that.
 on:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
@@ -48,6 +49,9 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v7
+      - name: Deploy script tests
+        working-directory: .
+        run: ./scripts/tests/test-deploy-scripts.sh
       - uses: actions/setup-node@v7
         with:
           node-version: 24

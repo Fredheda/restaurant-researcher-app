@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Ship a code change: build+push the image for the current commit, then roll
-# the container app to it. Refuses to run on a dirty tree — see build-push.sh.
+# the container app to it. The laptop fallback for the Deploy workflow. Refuses
+# to run on a dirty tree so the deployed SHA is what you have checked out.
 #
 # Usage: ./scripts/ship.sh
 set -euo pipefail

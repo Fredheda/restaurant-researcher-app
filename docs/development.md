@@ -38,4 +38,4 @@ GitHub Actions (`.github/workflows/ci.yml`) runs the same checks on every pull r
 1. Work on a branch (in this workspace, in your own git worktree).
 2. Run `./scripts/ci-local.sh` until it is green.
 3. Commit, push the branch and open a draft pull request (`gh pr create --draft`). When it is green locally, run `gh pr ready`: the build and the AI review (`.github/workflows/claude-review.yml`) then run on the PR.
-4. After the PR is merged, deploy: see [deployment/](../deployment/README.md).
+4. After the PR is merged, the owner deploys with the **Deploy** button: see [deployment/](../deployment/README.md).
