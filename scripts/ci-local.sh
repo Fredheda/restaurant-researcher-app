@@ -4,7 +4,11 @@
 #
 # Usage: ./scripts/ci-local.sh
 set -euo pipefail
-cd "$(dirname "$0")/../frontend"
+cd "$(dirname "$0")/.."
+
+./scripts/tests/test-deploy-scripts.sh
+
+cd frontend
 
 # CI installs npm 12.0.2 on Node 24 (see frontend/Dockerfile).
 echo "node $(node -v), npm $(npm -v) (CI: Node 24, npm 12.0.2)"
