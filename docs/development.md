@@ -25,7 +25,7 @@ npx tsc --noEmit
 npm run build
 ```
 
-GitHub Actions (`.github/workflows/ci.yml`) runs the same checks on every pull request and every push to `main`, as two checks: `frontend-test` (tests) and `frontend-checks` (lint, type-check, build).
+GitHub Actions (`.github/workflows/ci.yml`) runs the same checks in one `frontend` job on every pull request, and on nothing else: a merge to `main` starts no run. A docs-only pull request (only `*.md` files or files under `docs/`) skips that job.
 
 `next-env.d.ts` and `*.tsbuildinfo` are generated and gitignored.
 
