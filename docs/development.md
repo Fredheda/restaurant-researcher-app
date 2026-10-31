@@ -25,7 +25,9 @@ npx tsc --noEmit
 npm run build
 ```
 
-GitHub Actions (`.github/workflows/ci.yml`) runs the same checks in one `frontend` job on every pull request. A docs-only pull request (only `*.md` files or files under `docs/`) skips that job. A merge to `main` starts no run.
+`./scripts/ci-local.sh` runs all of them in CI order (plus `actionlint` when installed) and stops at the first failure.
+
+GitHub Actions (`.github/workflows/ci.yml`) runs the same checks on every pull request. A draft pull request runs only the light job (`checks`: tests, lint, type-check); the `build` job and the AI review start when the PR is marked ready (`gh pr ready`). A docs-only pull request (only `*.md` files or files under `docs/`) skips both jobs. A merge to `main` starts no run.
 
 `.github/workflows/security.yml` adds secret scanning and workflow linting on every pull request, plus a weekly dependency audit (`npm-audit`). If the weekly audit fails, open the run under Actions > Security, then bump the vulnerable dependency; there is no PR to block, so the failure is the alert.
 
@@ -34,6 +36,6 @@ GitHub Actions (`.github/workflows/ci.yml`) runs the same checks in one `fronten
 ## Making a change
 
 1. Work on a branch (in this workspace, in your own git worktree).
-2. Run the four checks above.
-3. Commit, push the branch and open a pull request. CI and the AI review (`.github/workflows/claude-review.yml`) run on the PR.
+2. Run `./scripts/ci-local.sh` until it is green.
+3. Commit, push the branch and open a draft pull request (`gh pr create --draft`). When it is green locally, run `gh pr ready`: the build and the AI review (`.github/workflows/claude-review.yml`) then run on the PR.
 4. After the PR is merged, deploy: see [deployment/](../deployment/README.md).

@@ -1,10 +1,14 @@
 name: CI
 
+# Run the same checks locally with scripts/ci-local.sh before `gh pr ready`.
+#
 # Runs on pull requests only: a merge to main starts no run, because the PR
-# already ran the same checks. A newer push to the same PR cancels the run
-# that is still going.
+# already ran the same checks. A draft PR runs only the light jobs (changes,
+# checks); the build runs once the PR is ready for review. A newer push to the
+# same PR cancels the run that is still going.
 on:
   pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -16,7 +20,7 @@ permissions:
 jobs:
   changes:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 2
     outputs:
       code: ${{ steps.diff.outputs.code }}
     steps:
@@ -33,11 +37,12 @@ jobs:
             echo "code=false" >> "$GITHUB_OUTPUT"
           fi
 
-  frontend:
+  # Light: tests, lint and type-check, on every push to a draft or ready PR.
+  checks:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
     defaults:
       run:
         working-directory: frontend
@@ -54,4 +59,23 @@ jobs:
       - run: npm test
       - run: npm run lint
       - run: npx tsc --noEmit
+
+  # Heavy: the production build, only once the PR is ready for review.
+  build:
+    needs: changes
+    if: needs.changes.outputs.code == 'true' && github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm install -g npm@12.0.2
+      - run: npm ci
       - run: npm run build
