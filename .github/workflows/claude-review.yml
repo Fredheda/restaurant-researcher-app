@@ -76,7 +76,8 @@ jobs:
             **Documentation check (every PR).** Before you finish, check that
             all documentation affected by this change was updated in the same
             PR and is not stale. Documentation means README.md, CLAUDE.md,
-            DEPLOYMENT.md, EXPIRATIONS.md, specs and plans under docs/
+            deployment/README.md, deployment/expirations.md,
+            docs/development.md, specs and plans under docs/
             (including their status lines and checkboxes), script and workflow
             header comments, command tables and lists of jobs, scripts or
             environment variables. Report as findings: (1) documentation that
