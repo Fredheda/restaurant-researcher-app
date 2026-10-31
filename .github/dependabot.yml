@@ -1,0 +1,55 @@
+# Monthly version updates. Security updates are enabled separately in the repo
+# settings and open immediately. `cooldown` makes Dependabot wait 14 days after
+# a release before it proposes it, which keeps freshly published (possibly
+# compromised) versions out. Each ecosystem groups its minor and patch updates
+# into one PR per run (fewer PRs, fewer CI runs).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    labels: [dependencies]
+    cooldown:
+      default-days: 14
+    groups:
+      npm-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    # Major bumps (Next.js, React, Tailwind, ...) need code changes and are
+    # done by hand as planned work, not as Dependabot PRs.
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    labels: [dependencies]
+    cooldown:
+      default-days: 14
+    groups:
+      actions-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker
+    directory: /frontend
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    labels: [dependencies]
+    cooldown:
+      default-days: 14
+    groups:
+      docker-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    # Stay on Node 24 LTS (the Dockerfile and CI both use it); patches still
+    # arrive. Odd Node majors are not LTS.
+    ignore:
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]

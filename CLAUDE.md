@@ -19,6 +19,7 @@ The Docker image and CI both install with npm 12.0.2 on Node 24. `ci.yml` runs o
 
 - `.github/workflows/claude-review.yml` posts a comment-only AI review on every push to a ready (non-draft) PR (security first, plus a documentation check); the owner can request one by commenting `@claude`.
 - Security checks live in `.github/workflows/security.yml` (jobs and schedule are in its header comment; failure handling in `docs/development.md`). `gitleaks` and `workflow-lint` block a PR; `npm-audit` is weekly only. There is no CodeQL job: code scanning is unavailable on a private repo on the free plan. Run locally: `gitleaks git . --redact`, `actionlint`, `cd frontend && npm audit --omit=dev --audit-level=high`.
+- Dependabot (`.github/dependabot.yml`) opens at most one grouped minor/patch PR per ecosystem (npm, GitHub Actions, Docker) each month, waits 14 days after a release, and never proposes npm or Node major bumps (done by hand). Security updates are immediate and come from the repo settings, not from that file.
 - The deployed app is private (Entra Easy Auth). Do not put its URL in the README.
 - When the backend agent lands, extend `deployment/README.md` with a second section for that Container App.
 
