@@ -1,21 +1,41 @@
 name: CI
 
+# Runs on pull requests only: a merge to main starts no run, because the PR
+# already ran the same checks. A newer push to the same PR cancels the run
+# that is still going.
 on:
   pull_request:
-  push:
-    branches: [main]
 
-# A new push to the same PR cancels the run that is still going. Pushes to
-# main are never cancelled, so every commit on main gets a result.
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  frontend-test:
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+    steps:
+      # The checkout is the PR merge commit; its first parent is the base tip.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      # Docs-only means every changed file is *.md or under docs/.
+      - id: diff
+        run: |
+          if git diff --name-only HEAD^1 HEAD | grep -qvE '(^docs/|\.md$)'; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "code=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  frontend:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -32,22 +52,6 @@ jobs:
       - run: npm install -g npm@12.0.2
       - run: npm ci
       - run: npm test
-
-  frontend-checks:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    defaults:
-      run:
-        working-directory: frontend
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm install -g npm@12.0.2
-      - run: npm ci
       - run: npm run lint
       - run: npx tsc --noEmit
       - run: npm run build

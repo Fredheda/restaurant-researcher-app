@@ -6,10 +6,8 @@ This repo lives inside a multi-repo workspace with its own root `CLAUDE.md` (`..
 
 ## Working rules
 
-- **Git:** run git freely up to a commit; push a feature branch and open a PR. `fetch` and `pull` are fine (default to `pull --ff-only`). Ask first for `rebase`, `reset`, force-push, deleting branches, or anything on `main`. Reviewing and merging PRs is the user's alone; hand over the PR URL.
-- **Worktrees:** other Claude sessions share the workspace. Work in your own worktree, never the main checkout: `git worktree add ../.worktrees/<repo>-<slug> -b <branch> origin/main`. Remove it after the PR merges. Details in the root `CLAUDE.md`, "Parallel sessions".
+- Git, worktrees, PR review and cleanup follow the root `CLAUDE.md` ("Git operations", "Parallel sessions", "Ways of working").
 - Commit messages: 2 lines at most, no `Co-Authored-By` trailer. PR titles and descriptions must not mention Claude Code or link the Claude session.
-- After opening a PR, wait for CI (`gh pr checks --watch`), then read every automated review comment (the inline comments via `gh api repos/<owner>/<repo>/pulls/<n>/comments` and the summary via `gh pr view <n> --comments`) and address all of them before handing over the PR URL. Fix each finding with a new commit and push, or reply on the PR with the reason when you disagree. Never hand over a PR with an unaddressed review comment. When a ticket's wording conflicts with a finding, fix the finding and tell the owner.
 - **Response style:** keep replies terse. Short plain sentences, no filler or pleasantries, no restating the question, no narration around tool calls. Code, commands and error messages stay exact. Write commits, PR text, docs and tickets in normal prose.
 
 ## What this is
@@ -30,7 +28,7 @@ npm run build
 
 From the repo root: `./scripts/ship.sh` deploys code (refuses a dirty tree); `./infra/deploy.sh` deploys infra.
 
-The Docker image and CI both install with npm 12.0.2 on Node 24. `next-env.d.ts` and `*.tsbuildinfo` are generated and gitignored.
+The Docker image and CI both install with npm 12.0.2 on Node 24. CI runs on pull requests only (nothing runs on a merge to `main`); a docs-only PR (`*.md` or `docs/`) skips the `frontend` job. `next-env.d.ts` and `*.tsbuildinfo` are generated and gitignored.
 
 ## Gotchas
 
