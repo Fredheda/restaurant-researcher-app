@@ -9,7 +9,7 @@ This repo lives inside a multi-repo workspace with its own root `CLAUDE.md` (`..
 - **Git:** run git freely up to a commit; push a feature branch and open a PR. `fetch` and `pull` are fine (default to `pull --ff-only`). Ask first for `rebase`, `reset`, force-push, deleting branches, or anything on `main`. Reviewing and merging PRs is the user's alone; hand over the PR URL.
 - **Worktrees:** other Claude sessions share the workspace. Work in your own worktree, never the main checkout: `git worktree add ../.worktrees/<repo>-<slug> -b <branch> origin/main`. Remove it after the PR merges. Details in the root `CLAUDE.md`, "Parallel sessions".
 - Commit messages: 2 lines at most, no `Co-Authored-By` trailer. PR titles and descriptions must not mention Claude Code or link the Claude session.
-- After opening a PR, wait for CI (`gh pr checks --watch`), then read the LLM review comments and address them before handing over the PR URL.
+- After opening a PR, wait for CI (`gh pr checks --watch`), then read every automated review comment (the inline comments via `gh api repos/<owner>/<repo>/pulls/<n>/comments` and the summary via `gh pr view <n> --comments`) and address all of them before handing over the PR URL. Fix each finding with a new commit and push, or reply on the PR with the reason when you disagree. Never hand over a PR with an unaddressed review comment. When a ticket's wording conflicts with a finding, fix the finding and tell the owner.
 - **Response style:** use the `caveman` skill for responses in this repo; invoke it before replying.
 
 ## What this is
@@ -34,7 +34,7 @@ The Docker image and CI both install with npm 12.0.2 on Node 24. `next-env.d.ts`
 
 ## Gotchas
 
-- `.github/workflows/claude-review.yml` posts a comment-only AI security review on every PR push; the owner can request one by commenting `@claude`. Its `CLAUDE_CODE_OAUTH_TOKEN` secret expires about 2027-10-24 (renewal steps in `deployment/expirations.md`).
+- `.github/workflows/claude-review.yml` posts a comment-only AI review (security first, plus a check that affected docs were updated and are not stale) on every PR push; the owner can request one by commenting `@claude`. Its `CLAUDE_CODE_OAUTH_TOKEN` secret expires about 2027-10-24 (renewal steps in `deployment/expirations.md`).
 - The deployed app is private (Entra Easy Auth). Do not put its URL in the README.
 - When the backend agent lands, extend `deployment/README.md` with a second section for that Container App.
 
