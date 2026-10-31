@@ -13,11 +13,11 @@ Website for the `restaurant-researcher` skill: venue research as a card board wi
 
 Run the app and the four checks (`npm test`, `npm run lint`, `npx tsc --noEmit`, `npm run build`) from `frontend/`; see `docs/development.md`. From the repo root, `./scripts/ship.sh` deploys code (refuses a dirty tree) and `./infra/deploy.sh` deploys infra.
 
-The Docker image and CI both install with npm 12.0.2 on Node 24. `ci.yml` runs on pull requests only (nothing runs on a merge to `main`); a docs-only PR (`*.md` or `docs/`) skips its `frontend` job. `next-env.d.ts` and `*.tsbuildinfo` are generated and gitignored.
+The Docker image and CI both install with npm 12.0.2 on Node 24. `ci.yml` runs on pull requests only (nothing runs on a merge to `main`); a docs-only PR (`*.md` or `docs/`) skips its jobs, and a draft PR skips the `build` job. Run `./scripts/ci-local.sh` (every `ci.yml` check, in CI order) green before `gh pr ready`. `next-env.d.ts` and `*.tsbuildinfo` are generated and gitignored.
 
 ## Gotchas
 
-- `.github/workflows/claude-review.yml` posts a comment-only AI review on every PR push (security first, plus a documentation check); the owner can request one by commenting `@claude`.
+- `.github/workflows/claude-review.yml` posts a comment-only AI review on every push to a ready (non-draft) PR (security first, plus a documentation check); the owner can request one by commenting `@claude`.
 - Security checks live in `.github/workflows/security.yml` (jobs and schedule are in its header comment; failure handling in `docs/development.md`). `gitleaks` and `workflow-lint` block a PR; `npm-audit` is weekly only. There is no CodeQL job: code scanning is unavailable on a private repo on the free plan. Run locally: `gitleaks git . --redact`, `actionlint`, `cd frontend && npm audit --omit=dev --audit-level=high`.
 - The deployed app is private (Entra Easy Auth). Do not put its URL in the README.
 - When the backend agent lands, extend `deployment/README.md` with a second section for that Container App.
