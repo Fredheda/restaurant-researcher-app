@@ -14,7 +14,7 @@ npm ci
 npm run dev        # http://localhost:3000
 ```
 
-Try asking for a place by name in the chat panel (for example one of the fixtures in `app/fixtures/places.ts`). Names are matched without accents or punctuation. Anything not in the fixtures gets a "couldn't find that place" reply.
+Try asking for a place by name in the chat panel (for example "Fogo de Chão", defined in `frontend/app/fixtures/places.ts`). Names are matched without accents or punctuation. Anything not in the fixtures gets a "couldn't find that place" reply.
 
 ## Checks
 
