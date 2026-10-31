@@ -34,7 +34,7 @@ The Docker image and CI both install with npm 12.0.2 on Node 24. `next-env.d.ts`
 
 ## Gotchas
 
-- `.github/workflows/claude-review.yml` posts a comment-only AI security review on every PR push; the owner can request one by commenting `@claude`. Its `CLAUDE_CODE_OAUTH_TOKEN` secret expires about 2027-10-24 (renewal steps in `deployment/expirations.md`).
+- `.github/workflows/claude-review.yml` posts a comment-only AI review (security first, plus a check that affected docs were updated and are not stale) on every PR push; the owner can request one by commenting `@claude`. Its `CLAUDE_CODE_OAUTH_TOKEN` secret expires about 2027-10-24 (renewal steps in `deployment/expirations.md`).
 - The deployed app is private (Entra Easy Auth). Do not put its URL in the README.
 - When the backend agent lands, extend `deployment/README.md` with a second section for that Container App.
 
