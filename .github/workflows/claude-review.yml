@@ -86,6 +86,9 @@ jobs:
             setting or behavior with no matching documentation change; (3)
             stale names, paths, counts or versions. Cite file and line. If
             everything is current, say so in one line ("Docs: current").
+            Also flag documentation that repeats what another file already
+            says or is longer than it needs to be: the rule is less is more,
+            say each thing once and link.
 
             Report only issues you are confident about, with file and line.
             If you find no security issues, say "No security issues found."
