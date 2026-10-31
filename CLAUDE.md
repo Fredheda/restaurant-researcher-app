@@ -2,60 +2,44 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-> This repo lives inside a multi-repo workspace with its own root `CLAUDE.md`
-> (`../CLAUDE.md`, one level up) covering workspace-wide conventions — where
-> specs/plans go, the git rule, shared MCP/skill usage. Keep that file's
-> per-project facts about this repo in sync whenever they drift from what's
-> true here.
+This repo lives inside a multi-repo workspace with its own root `CLAUDE.md` (`../CLAUDE.md`) covering workspace-wide conventions: where specs and plans go, the git rules, shared MCP and skill usage. Keep that file's facts about this repo in sync when they drift.
 
-**Git:** you may run git freely up to a commit, and push a feature branch and
-open a PR. `fetch` and `pull` are fine too (default to `pull --ff-only`). Ask
-first for `rebase`, `reset`, force-push, deleting branches, or anything on
-`main`. Reviewing and merging PRs is the user's alone — hand over the PR URL.
-Other Claude sessions share this workspace: work in your own git worktree,
-never the main checkout. Create one with `git worktree add
-../.worktrees/<repo>-<slug> -b <branch> origin/main` (or the `EnterWorktree`
-tool) and remove it after the PR merges; details in the "Parallel sessions"
-section of the root `CLAUDE.md`. Commit messages are 2 lines at most, with no
-`Co-Authored-By` trailer. Full rule in the root `CLAUDE.md` linked above.
-PR titles and descriptions must not mention Claude Code or link the Claude
-session (no "Generated with Claude Code" footer).
-After opening a PR, wait for CI to pass (`gh pr checks --watch`), then read the
-LLM review comments and address them, before handing the PR URL over for review.
+## Working rules
 
-**Response style:** use the `caveman` skill for responses in this repo —
-invoke it before replying, not just when asked.
+- **Git:** run git freely up to a commit; push a feature branch and open a PR. `fetch` and `pull` are fine (default to `pull --ff-only`). Ask first for `rebase`, `reset`, force-push, deleting branches, or anything on `main`. Reviewing and merging PRs is the user's alone; hand over the PR URL.
+- **Worktrees:** other Claude sessions share the workspace. Work in your own worktree, never the main checkout: `git worktree add ../.worktrees/<repo>-<slug> -b <branch> origin/main`. Remove it after the PR merges. Details in the root `CLAUDE.md`, "Parallel sessions".
+- Commit messages: 2 lines at most, no `Co-Authored-By` trailer. PR titles and descriptions must not mention Claude Code or link the Claude session.
+- After opening a PR, wait for CI (`gh pr checks --watch`), then read the LLM review comments and address them before handing over the PR URL.
+- **Response style:** use the `caveman` skill for responses in this repo; invoke it before replying.
 
 ## What this is
 
-Website for the `restaurant-researcher` skill: venue research as a card board
-with a chat interface. Frontend only for now (Next.js 16, React 19, Tailwind 4),
-serving stub chat and place data. Deployed to Azure Container Apps at
-restaurants.frederikheda.com — see `DEPLOYMENT.md`.
+Website for the `restaurant-researcher` skill: venue research as a card board with a chat interface. Frontend only for now (Next.js 16, React 19, Tailwind 4), serving stub chat and place data from fixtures. The `PlaceResult` type in `frontend/app/types.ts` is the contract the future agent fills.
 
 ## Commands
 
-Run from `frontend/` unless noted.
+Run from `frontend/`:
 
-| Task | Command |
-|------|---------|
-| Dev server | `npm run dev` |
-| Tests (vitest, jsdom) | `npm test` |
-| Lint | `npm run lint` |
-| Type-check | `npx tsc --noEmit` |
-| Production build | `npm run build` |
-| Deploy code (from repo root) | `./scripts/ship.sh` (refuses a dirty tree) |
-| Deploy infra (from repo root) | `./infra/deploy.sh` |
+```bash
+npm run dev            # dev server
+npm test               # vitest, jsdom
+npm run lint
+npx tsc --noEmit
+npm run build
+```
 
-The Docker image installs with npm 12.0.2 on Node 24; CI does the same
-(`.github/workflows/ci.yml`), running the tests and the lint, type-check and
-build checks on every pull request and every push to `main`.
+From the repo root: `./scripts/ship.sh` deploys code (refuses a dirty tree); `./infra/deploy.sh` deploys infra.
 
-`.github/workflows/claude-review.yml` posts an AI security-first review when a
-PR is opened and on every push to it; the repo owner can also request one by
-commenting `@claude`. It is comment-only and authenticates with the
-`CLAUDE_CODE_OAUTH_TOKEN` repo secret, which expires about 2027-10-24: renew
-with `claude setup-token`, then `gh secret set CLAUDE_CODE_OAUTH_TOKEN`. If
-subscription auth is refused, switch the action input to `anthropic_api_key`.
+The Docker image and CI both install with npm 12.0.2 on Node 24. `next-env.d.ts` and `*.tsbuildinfo` are generated and gitignored.
 
-`next-env.d.ts` and `*.tsbuildinfo` are generated and gitignored.
+## Gotchas
+
+- `.github/workflows/claude-review.yml` posts a comment-only AI security review on every PR push; the owner can request one by commenting `@claude`. Its `CLAUDE_CODE_OAUTH_TOKEN` secret expires about 2027-10-24 (renewal steps in `deployment/expirations.md`).
+- The deployed app is private (Entra Easy Auth). Do not put its URL in the README.
+- When the backend agent lands, extend `deployment/README.md` with a second section for that Container App.
+
+## Where to look
+
+- Local dev and checks: `docs/development.md`
+- Deployment, rollback, user approval: `deployment/README.md`
+- Credential expiry and rotation: `deployment/expirations.md`

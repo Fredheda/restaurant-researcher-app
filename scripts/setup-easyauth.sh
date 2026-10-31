@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Lock ca-restaurant-researcher-web behind Entra Easy Auth so ONLY approved
 # users can reach it. Idempotent — safe to re-run (rotates the client secret
-# each run; see the 2-year expiry note in EXPIRATIONS.md).
+# each run; see the 2-year expiry note in deployment/expirations.md).
 #
 # Usage: ./scripts/setup-easyauth.sh
 set -euo pipefail
