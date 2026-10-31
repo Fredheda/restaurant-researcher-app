@@ -25,7 +25,9 @@ npx tsc --noEmit
 npm run build
 ```
 
-GitHub Actions (`.github/workflows/ci.yml`) runs the same checks in one `frontend` job on every pull request, and on nothing else: a merge to `main` starts no run. A docs-only pull request (only `*.md` files or files under `docs/`) skips that job.
+GitHub Actions (`.github/workflows/ci.yml`) runs the same checks in one `frontend` job on every pull request. A docs-only pull request (only `*.md` files or files under `docs/`) skips that job. A merge to `main` starts no run.
+
+`.github/workflows/security.yml` adds secret scanning and workflow linting on every pull request, plus a weekly dependency audit (`npm-audit`). If the weekly audit fails, open the run under Actions > Security, then bump the vulnerable dependency; there is no PR to block, so the failure is the alert.
 
 `next-env.d.ts` and `*.tsbuildinfo` are generated and gitignored.
 
