@@ -18,6 +18,7 @@ The Docker image and CI both install with npm 12.0.2 on Node 24. CI runs on pull
 ## Gotchas
 
 - `.github/workflows/claude-review.yml` posts a comment-only AI review on every PR push (security first, plus a documentation check); the owner can request one by commenting `@claude`.
+- `.github/workflows/security.yml` runs `gitleaks` (blocking; PR commits only, whole history weekly) and `workflow-lint` (blocking; actionlint) on pull requests, and `npm-audit` (high severity, production dependencies) on the weekly schedule only, where it fails visibly. Nothing runs on a merge to `main`. There is no CodeQL job: code scanning is unavailable on a private repo on the free plan. Run locally: `gitleaks git . --redact`, `actionlint`, `cd frontend && npm audit --omit=dev --audit-level=high`.
 - The deployed app is private (Entra Easy Auth). Do not put its URL in the README.
 - When the backend agent lands, extend `deployment/README.md` with a second section for that Container App.
 

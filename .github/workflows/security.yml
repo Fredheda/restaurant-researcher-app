@@ -1,0 +1,73 @@
+name: Security
+
+# Pull requests run only the two fast blocking checks (gitleaks, workflow-lint).
+# The dependency audit runs on the weekly schedule, because advisories appear
+# without any code change. Nothing runs on a merge to main: the PR already ran
+# the same checks.
+on:
+  pull_request:
+  schedule:
+    - cron: "23 5 * * 1"
+
+# A new push to the same PR cancels the run that is still going. Scheduled
+# runs are never cancelled.
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  # Blocks the PR. Runs the pinned gitleaks image directly: the gitleaks
+  # action needs a license key for organization repos.
+  gitleaks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      # PRs scan only the commits they add; the weekly run scans the whole
+      # history.
+      - name: Scan for secrets
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          log_opts=()
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            log_opts=(--log-opts="${BASE_SHA}..${HEAD_SHA}")
+          fi
+          docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.30.1 \
+            git /repo --redact --no-banner --verbose "${log_opts[@]}"
+
+  # Blocks the PR. Lints the workflow files with the pinned actionlint image.
+  workflow-lint:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - name: Lint workflows
+        run: |
+          docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12 \
+            -color
+
+  # Weekly only, and it fails visibly: a new advisory against an old
+  # dependency must not fail an unrelated PR.
+  npm-audit:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      # Match frontend/Dockerfile.
+      - run: npm install -g npm@12.0.2
+      - run: npm audit --omit=dev --audit-level=high
