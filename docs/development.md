@@ -23,11 +23,14 @@ npm test               # vitest, jsdom
 npm run lint
 npx tsc --noEmit
 npm run build
+npm run e2e            # Playwright (Chromium) against the production build; run `npm run build` first
 ```
+
+The browser tests (`frontend/e2e/`) serve `.next/standalone` laid out as the Docker image does and need no network. First run: `npx playwright install chromium`. A failed run leaves a report in `frontend/playwright-report/`.
 
 `./scripts/ci-local.sh` runs all of them in CI order (plus `actionlint` when installed) and stops at the first failure.
 
-GitHub Actions (`.github/workflows/ci.yml`) runs the same checks on every pull request. A draft pull request runs only the light job (`checks`: tests, lint, type-check); the `build` job and the AI review start when the PR is marked ready (`gh pr ready`). A docs-only pull request (only `*.md` files or files under `docs/`) skips both jobs. A merge to `main` starts no run.
+GitHub Actions (`.github/workflows/ci.yml`) runs the same checks on every pull request. A draft pull request runs only the light job (`checks`: tests, lint, type-check); the `build` job (build plus browser tests) and the AI review start when the PR is marked ready (`gh pr ready`). A docs-only pull request (only `*.md` files or files under `docs/`) skips both jobs. A merge to `main` starts no run.
 
 `.github/workflows/security.yml` adds secret scanning and workflow linting on every pull request, plus a weekly dependency audit (`npm-audit`). If the weekly audit fails, open the run under Actions > Security, then bump the vulnerable dependency; there is no PR to block, so the failure is the alert.
 
