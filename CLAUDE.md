@@ -13,9 +13,9 @@ Website for the `restaurant-researcher` skill: venue research as a card board wi
 
 ## Commands
 
-Run the app and the four checks (`npm test`, `npm run lint`, `npx tsc --noEmit`, `npm run build`) from `frontend/`; see `docs/development.md`. Code deploys with the manual **Deploy** workflow (see `deployment/README.md`); `./scripts/ship.sh` is the laptop fallback and `./infra/deploy.sh` deploys infra (laptop only).
+Run the app and the checks (`npm test`, `npm run lint`, `npx tsc --noEmit`, `npm run build`, `npm run e2e`) from `frontend/`; see `docs/development.md`. Every locator for the browser tests lives in `frontend/e2e/selectors.ts`; ESLint rejects `.locator()` in specs. A browser test must catch a bug no other test catches. Code deploys with the manual **Deploy** workflow (see `deployment/README.md`); `./scripts/ship.sh` is the laptop fallback and `./infra/deploy.sh` deploys infra (laptop only).
 
-The Docker image and CI both install with npm 12.0.2 on Node 24. `ci.yml` runs on pull requests only (nothing runs on a merge to `main`); a docs-only PR (`*.md` or `docs/`) skips its jobs, and a draft PR skips the `build` job. Run `./scripts/ci-local.sh` (every `ci.yml` check, in CI order) green before `gh pr ready`. `next-env.d.ts` and `*.tsbuildinfo` are generated and gitignored.
+The Docker image and CI both install with npm 12.0.2 on Node 24. `ci.yml` runs on pull requests only (nothing runs on a merge to `main`); a docs-only PR (`*.md` or `docs/`) skips its jobs, and a draft PR skips the `build` job (production build plus the browser tests). Run `./scripts/ci-local.sh` (every `ci.yml` check, in CI order) green before `gh pr ready`. `next-env.d.ts` and `*.tsbuildinfo` are generated and gitignored.
 
 ## Gotchas
 

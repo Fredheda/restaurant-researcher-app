@@ -6,3 +6,7 @@ node_modules/
 # .next/dev and .next paths on every run.
 next-env.d.ts
 *.tsbuildinfo
+
+# Playwright
+/test-results/
+/playwright-report/

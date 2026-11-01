@@ -18,6 +18,9 @@ npm test
 npm run lint
 npx tsc --noEmit
 npm run build
+# Browser tests against the production build; installs Chromium if missing.
+npx playwright install chromium
+npm run e2e
 
 # security.yml's workflow-lint blocks PRs too; run it when actionlint is installed.
 if command -v actionlint >/dev/null 2>&1; then
