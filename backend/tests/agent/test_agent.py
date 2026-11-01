@@ -4,9 +4,12 @@ from typing import Any
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from langchain_core.runnables import RunnableConfig
+from langgraph.checkpoint.base import BaseCheckpointSaver
 
+from app.agent import server
 from app.agent.graph import SYSTEM_PROMPT, build_graph
-from app.agent.server import AGENT_NAME, AGENT_PATH
+from app.agent.server import AGENT_NAME, AGENT_PATH, ThreadOwners
 from app.main import create_app
 from app.places.service import SearchService
 from app.services import Services
@@ -214,6 +217,39 @@ async def test_another_users_thread_is_403() -> None:
     assert r.status_code == 403
     assert h.model.log["turn"] == 1
     assert (await h.run()).status_code == 200
+
+
+def test_thread_owner_map_is_bounded_and_drops_history() -> None:
+    dropped: list[str] = []
+    owners = ThreadOwners(limit=2, on_evict=dropped.append)
+    assert owners.claim("t1", "alice")
+    assert owners.claim("t2", "alice")
+    assert owners.claim("t3", "bob")
+    assert len(owners) == 2
+    assert dropped == ["t1"]
+    assert owners.claim("t1", "bob")  # dropped id, its history is gone
+    assert not owners.claim("t3", "alice")
+
+
+async def test_evicted_thread_history_is_deleted_from_the_checkpointer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(server, "MAX_THREADS", 1)
+    h = Harness(["hi", "again"])
+    saver = h.graph.checkpointer
+    assert isinstance(saver, BaseCheckpointSaver)
+    first: RunnableConfig = {"configurable": {"thread_id": "thread-1"}}
+    await h.run()
+    assert saver.get_tuple(first) is not None
+    async with AsyncClient(
+        transport=ASGITransport(app=h.app), base_url="http://t"
+    ) as c:
+        await c.post(
+            AGENT_PATH,
+            json={**run_input(), "threadId": "thread-2"},
+            headers={**ALICE, "accept": "text/event-stream"},
+        )
+    assert saver.get_tuple(first) is None
 
 
 async def test_run_without_principal_is_401() -> None:
