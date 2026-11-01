@@ -18,9 +18,9 @@
 #                Managed Identity Operator on the app's AcrPull identity
 #                (updating an app that uses it needs assign/action)
 #   3. Adds one federated credential to each identity (subject taken from the
-#      repo's OIDC settings; a credential with a stale subject is replaced), both trusting only the
-#      job that runs in the `production` environment (the Deploy workflow logs
-#      in twice, as build and then as deploy).
+#      repo's OIDC settings; a credential with a stale subject is replaced),
+#      both trusting only the job that runs in the `production` environment
+#      (the Deploy workflow logs in twice, as build and then as deploy).
 #   4. Creates the `production` GitHub environment, restricted to jobs running
 #      on the main branch (a branch author cannot edit their way around it),
 #      and stores the Azure IDs the workflows read as repo SECRETS:
@@ -115,6 +115,10 @@ done
 # (repo:<owner>@<id>/<repo>@<id>), older ones repo:<owner>/<repo>. Ask GitHub
 # which one this repo uses, or the federated credential will never match.
 SUB_PREFIX=$(gh api "repos/$GH_REPO/actions/oidc/customization/sub" --jq .sub_claim_prefix)
+if [ -z "$SUB_PREFIX" ] || [ "$SUB_PREFIX" = null ]; then
+  echo "ERROR: GitHub returned no sub_claim_prefix for $GH_REPO." >&2
+  exit 1
+fi
 SUBJECT="$SUB_PREFIX:environment:production"
 echo "OIDC subject: $SUBJECT"
 
