@@ -7,6 +7,7 @@ import { ChatPanel } from "./chat-panel";
 import { DetailOverlay } from "./detail-overlay";
 import { ComparePanel } from "./compare-panel";
 import { RatingSheet } from "./rating-sheet";
+import { SearchBar } from "./search-bar";
 import { PLACES } from "./fixtures/places";
 import { visitDraftFor } from "./fixtures/visit-drafts";
 
@@ -31,6 +32,14 @@ export default function Page() {
     setPlaces((prev) => (prev.some((p) => p.id === place.id) ? prev : [...prev, place]));
   }
 
+  /** A search replaces the board; selection and panels refer to old cards. */
+  function showSearch(found: PlaceResult[]) {
+    setPlaces(found);
+    setSelectedIds([]);
+    setOpenId(null);
+    setComparing(false);
+  }
+
   function toggleSelect(id: string) {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : prev.length >= 4 ? prev : [...prev, id]
@@ -43,11 +52,14 @@ export default function Page() {
 
   return (
     <div className="flex h-dvh flex-col">
-      <header className="flex items-center gap-3 border-b border-hairline px-4 py-3">
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-hairline px-4 py-3">
         <span className="font-display text-xl font-semibold text-ink">Tonight</span>
         <span className="rounded-sm bg-ink px-2 py-0.5 text-xs font-semibold text-paper">
           from Canary Wharf
         </span>
+        <div className="flex w-full min-w-0 sm:w-auto sm:flex-1">
+          <SearchBar onResults={(result) => showSearch(result.places)} />
+        </div>
       </header>
       <div className="flex min-h-0 flex-1">
         <Board

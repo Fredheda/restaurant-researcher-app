@@ -3,6 +3,8 @@
 // attributes the app already has.
 import type { Locator, Page } from "@playwright/test";
 
+export const searchBox = (page: Page) => page.getByRole("searchbox", { name: "Search places" });
+export const searchError = (page: Page) => page.getByRole("search").getByRole("alert");
 export const chatInput = (page: Page) => page.getByPlaceholder("Ask about a place…");
 export const chatMessages = (page: Page) => page.getByTestId("chat-messages");
 export const card = (page: Page, id: string) => page.getByTestId(`card-${id}`);
