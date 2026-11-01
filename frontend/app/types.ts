@@ -15,6 +15,15 @@ export type PlaceResult = {
   neighbourhood: string;
   priceTier: "£" | "££" | "£££" | "££££";
 
+  /** Photo url; the card draws a placeholder gradient when absent. */
+  photo?: string;
+  /** Food hygiene rating 0 to 5; null = not rated; absent = hide the badge. */
+  hygieneRating?: number | null;
+  /** One italic line on the card saying why this place suits the owner. */
+  whyThis?: string;
+  /** True while the deep research for this place is still running. */
+  enriching?: boolean;
+
   overview: {
     rating: number;
     reviewCount: number;
