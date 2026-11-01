@@ -132,6 +132,23 @@ async def test_hanging_cache_does_not_block_the_search() -> None:
     assert [c["id"] for c in result.places] == ["p1"]
 
 
+async def test_cold_database_costs_one_read_timeout_not_two() -> None:
+    cache = TimeoutCache(SlowCache(), read_timeout_s=0.2, lookup_timeout_s=0.2)
+    service, *_ = make(cache=cache)
+    loop = asyncio.get_running_loop()
+    start = loop.time()
+    await service.search("ramen", None, "alice")
+    assert loop.time() - start < 0.35
+
+
+async def test_long_origin_is_capped_before_it_is_stored() -> None:
+    service, _, _, cache, _ = make()
+    result = await service.search("ramen", "x" * 500, "alice", wait_for_save=True)
+    stored = await cache.get_search_by_id(result.id, "alice")
+    assert stored is not None and stored.origin is not None
+    assert len(stored.origin) == 200
+
+
 async def test_raising_cache_still_answers_and_save_failure_is_contained() -> None:
     cache = TimeoutCache(RaisingCache(), read_timeout_s=1, lookup_timeout_s=1)
 
@@ -149,6 +166,7 @@ async def test_wait_for_save_persists_before_returning() -> None:
     service, _, _, cache, _ = make()
     result = await service.search("ramen", None, "alice", wait_for_save=True)
     assert await cache.get_search_by_id(result.id, "alice") is not None
+    assert result.saved is True
 
 
 async def test_wait_for_save_still_answers_when_save_fails() -> None:
@@ -161,6 +179,7 @@ async def test_wait_for_save_still_answers_when_save_fails() -> None:
     service, _, _, _, _ = make(cache=cache)
     result = await service.search("ramen", None, "alice", wait_for_save=True)
     assert result.places
+    assert result.saved is False
 
 
 async def test_ranking_rating_then_review_count_unrated_last() -> None:

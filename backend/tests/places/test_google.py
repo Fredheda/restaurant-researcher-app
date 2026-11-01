@@ -161,6 +161,35 @@ async def test_network_error_raises_places_error_without_key() -> None:
     assert KEY not in str(info.value)
 
 
+@pytest.mark.parametrize(
+    "response",
+    [
+        httpx.Response(200, text="<html>proxy page</html>"),
+        httpx.Response(200, json=["not", "a", "dict"]),
+        httpx.Response(200, json={"places": "nope"}),
+        httpx.Response(200, json={"places": [{"id": "x", "location": "bad"}]}),
+    ],
+)
+async def test_bad_200_body_raises_places_error(response: httpx.Response) -> None:
+    with pytest.raises(PlacesError):
+        await _client(lambda r: response).search_text("x", None)
+
+
+async def test_place_without_id_is_skipped_others_kept() -> None:
+    body = {"places": [{"displayName": {"text": "No id"}}, FULL_PLACE]}
+    places = await _client(lambda r: httpx.Response(200, json=body)).search_text(
+        "x", None
+    )
+    assert [p.id for p in places] == ["ChIJ-koya"]
+
+
+async def test_overlong_photo_ref_is_dropped() -> None:
+    raw = {**FULL_PLACE, "photos": [{"name": "places/x/photos/" + "a" * 1000}]}
+    client = _client(lambda r: httpx.Response(200, json={"places": [raw]}))
+    [place] = await client.search_text("x", None)
+    assert place.photo_ref is None
+
+
 async def test_photo_url_returns_photo_uri() -> None:
     seen: list[httpx.Request] = []
 

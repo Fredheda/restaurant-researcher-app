@@ -20,7 +20,7 @@ CREATE TABLE rr.places (
     review_count   INT            NULL,
     price_tier     NVARCHAR(4)    NULL,
     open_now       BIT            NULL,
-    photo_ref      NVARCHAR(500)  NULL,
+    photo_ref      NVARCHAR(1000) NULL,
     type_label     NVARCHAR(200)  NULL,
     types          NVARCHAR(2000) NULL,  -- JSON array of Google types
     hygiene_rating TINYINT        NULL,  -- FSA FHRS 0 to 5; NULL = not rated

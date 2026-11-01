@@ -41,6 +41,8 @@ FIELD_MASK = ",".join(
 LONDON = LatLng(51.5074, -0.1278)
 BIAS_RADIUS_M = 15000.0
 PAGE_SIZE = 10
+# rr.places.photo_ref is NVARCHAR(1000); a longer ref is dropped, not truncated.
+MAX_PHOTO_REF = 1000
 
 PRICE_TIERS = {
     "PRICE_LEVEL_FREE": "£",
@@ -74,6 +76,14 @@ def _component(components: list[dict[str, Any]], *types: str) -> str | None:
     return None
 
 
+def _photo_ref(photos: list[dict[str, Any]]) -> str | None:
+    """The first photo's resource name, if it fits the cache column."""
+    name = photos[0].get("name") if photos else None
+    if isinstance(name, str) and len(name) <= MAX_PHOTO_REF:
+        return name
+    return None
+
+
 def _to_place(raw: dict[str, Any]) -> GooglePlace:
     components = raw.get("addressComponents") or []
     location = raw.get("location") or {}
@@ -91,7 +101,7 @@ def _to_place(raw: dict[str, Any]) -> GooglePlace:
         review_count=int(review_count) if review_count is not None else None,
         price_tier=PRICE_TIERS.get(raw.get("priceLevel", "")),
         open_now=(raw.get("currentOpeningHours") or {}).get("openNow"),
-        photo_ref=photos[0].get("name") if photos else None,
+        photo_ref=_photo_ref(photos),
         type_label=(raw.get("primaryTypeDisplayName") or {}).get("text"),
         types=tuple(raw.get("types") or ()),
     )
@@ -121,7 +131,13 @@ class HttpGooglePlacesClient:
             raise PlacesError(f"text search failed: {type(error).__name__}") from None
         if response.status_code != 200:
             raise PlacesError(f"text search returned HTTP {response.status_code}")
-        return [_to_place(raw) for raw in response.json().get("places", [])]
+        try:
+            raw_places = response.json().get("places", [])
+            if not isinstance(raw_places, list):
+                raise TypeError("places is not a list")
+            return [_to_place(raw) for raw in raw_places if raw.get("id")]
+        except (ValueError, KeyError, TypeError, AttributeError):
+            raise PlacesError("text search returned a bad body") from None
 
     async def photo_url(self, photo_ref: str, max_width: int = 800) -> str | None:
         """A short-lived https link to the photo, or None. Never raises:

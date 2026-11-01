@@ -143,6 +143,54 @@ async def test_timeout_cache_logs_only_the_exception_class(
     assert "secret-server" not in caplog.text
 
 
+class FlakyCache(InMemoryPlaceCache):
+    """Hangs while `down` is set, counting the reads that reached it."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.down = True
+        self.reads = 0
+
+    async def get_places(self, ids):
+        self.reads += 1
+        if self.down:
+            await asyncio.sleep(5)
+        return await super().get_places(ids)
+
+    async def save(self, search, places):
+        if self.down:
+            await asyncio.sleep(5)
+        await super().save(search, places)
+
+
+async def test_after_a_failed_read_later_reads_miss_at_once() -> None:
+    clock = Clock()
+    inner = FlakyCache()
+    cache = TimeoutCache(
+        inner, read_timeout_s=0.1, lookup_timeout_s=0.1, trip_s=30, clock=clock
+    )
+    loop = asyncio.get_running_loop()
+    assert await cache.get_places(["p1"]) == {}
+    start = loop.time()
+    assert await cache.get_places(["p1"]) == {}
+    assert await cache.get_search("k", timedelta(hours=1)) is None
+    assert loop.time() - start < 0.05
+    assert inner.reads == 1
+
+    inner.down = False
+    clock.now = T0 + timedelta(seconds=31)
+    await cache.get_places(["p1"])
+    assert inner.reads == 2
+
+
+async def test_save_is_bounded_and_raises_on_timeout() -> None:
+    cache = TimeoutCache(
+        FlakyCache(), read_timeout_s=0.1, lookup_timeout_s=0.1, save_timeout_s=0.05
+    )
+    with pytest.raises(TimeoutError):
+        await cache.save(search("s1"), [place("p1")])
+
+
 async def test_timeout_cache_passes_results_through() -> None:
     inner = InMemoryPlaceCache()
     cache = TimeoutCache(inner, read_timeout_s=1, lookup_timeout_s=1)

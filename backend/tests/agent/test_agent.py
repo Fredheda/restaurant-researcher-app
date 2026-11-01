@@ -149,6 +149,23 @@ async def test_search_failure_ends_with_a_message_and_run_finished() -> None:
     assert "RUN_ERROR" not in types(evs)
 
 
+async def test_failed_save_gives_no_search_id_and_tells_the_model() -> None:
+    h = Harness([Call("search_places", {"query": "ramen"}), "ok"])
+
+    async def broken_save(search, places) -> None:
+        raise TimeoutError()
+
+    h.cache.save = broken_save  # type: ignore[method-assign]
+    evs = events(await h.run())
+    payload = json.loads(
+        next(e for e in evs if e["type"] == "TOOL_CALL_RESULT")["content"]
+    )
+    assert "search_id" not in payload
+    assert [p["id"] for p in payload["places"]] == ["p2", "p1"]
+    assert "show_places" in payload["note"]
+    assert types(evs)[-1] == "RUN_FINISHED"
+
+
 async def test_get_place_returns_a_card_from_an_earlier_search() -> None:
     h = Harness(
         [
@@ -188,6 +205,15 @@ async def test_model_failure_ends_with_run_error_and_no_detail(
     assert "sk-secret" not in r.text
     assert "sk-secret" not in caplog.text
     assert "RuntimeError" in caplog.text
+
+
+async def test_another_users_thread_is_403() -> None:
+    h = Harness(["hello alice", "never for bob"])
+    assert (await h.run()).status_code == 200
+    r = await h.run(headers={"x-ms-client-principal-id": "bob-oid"})
+    assert r.status_code == 403
+    assert h.model.log["turn"] == 1
+    assert (await h.run()).status_code == 200
 
 
 async def test_run_without_principal_is_401() -> None:

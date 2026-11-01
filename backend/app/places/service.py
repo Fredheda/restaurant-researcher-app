@@ -40,6 +40,9 @@ MIN_REVIEWS = 10
 MIN_RESULTS = 5
 LOOKUP_TIMEOUT_S = 1.0
 RECENT_SEARCHES = 200
+# Column sizes of rr.searches; a longer value would abort the save.
+MAX_QUERY = 300
+MAX_ORIGIN = 200
 
 _LAT_LNG = re.compile(r"^\s*(-?\d{1,2}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)\s*$")
 
@@ -53,6 +56,9 @@ class Search:
     id: str
     query: str
     places: list[dict[str, Any]]
+    # With wait_for_save: whether the search row reached the store. None
+    # when the save runs in the background.
+    saved: bool | None = None
 
     def to_json(self) -> dict[str, Any]:
         return {"id": self.id, "query": self.query, "places": self.places}
@@ -111,7 +117,7 @@ class SearchService:
         self._recent: OrderedDict[str, tuple[StoredSearch, list[CachedPlace]]] = (
             OrderedDict()
         )
-        self._pending: set[asyncio.Task[None]] = set()
+        self._pending: set[asyncio.Task[bool]] = set()
 
     async def search(
         self,
@@ -121,6 +127,8 @@ class SearchService:
         wait_for_save: bool = False,
     ) -> Search:
         now = self._clock()
+        query = query[:MAX_QUERY]
+        origin = origin[:MAX_ORIGIN] if origin else None
         key = search_key(query, origin)
         cached = await self._from_stored_search(key, now)
         if cached is None:
@@ -135,13 +143,14 @@ class SearchService:
             place_ids=tuple(c.place.id for c in cached),
         )
         self._remember(stored, cached)
+        saved: bool | None = None
         if wait_for_save:
-            await self._save(stored, cached)
+            saved = await self._save(stored, cached)
         else:
             task = asyncio.create_task(self._save(stored, cached))
             self._pending.add(task)
             task.add_done_callback(self._pending.discard)
-        return Search(stored.id, query, await self._cards(cached, now))
+        return Search(stored.id, query, await self._cards(cached, now), saved)
 
     async def get(self, search_id: str, user_id: str) -> Search | None:
         now = self._clock()
@@ -230,11 +239,13 @@ class SearchService:
             return CachedPlace(place, None, now, None)
         return CachedPlace(place, rating, now, now)
 
-    async def _save(self, stored: StoredSearch, cached: list[CachedPlace]) -> None:
+    async def _save(self, stored: StoredSearch, cached: list[CachedPlace]) -> bool:
         try:
             await self._cache.save(stored, cached)
         except Exception as error:  # noqa: BLE001 - the answer is already out
             logger.warning("cache save failed: %s", type(error).__name__)
+            return False
+        return True
 
     def _remember(self, stored: StoredSearch, cached: list[CachedPlace]) -> None:
         self._recent[stored.id] = (stored, cached)

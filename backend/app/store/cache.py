@@ -92,38 +92,70 @@ class InMemoryPlaceCache:
 
 
 class TimeoutCache:
-    """Reads that time out or fail are misses. `read_timeout_s` bounds the
-    reads on the fast search path; `lookup_timeout_s` bounds fetching a
-    search by id, which can wait for a paused database to resume."""
+    """Reads that time out or fail are misses.
+
+    - `read_timeout_s` bounds the reads on the fast search path. After one
+      such read fails, fast-path reads miss at once for `trip_s`, so a
+      paused database costs one timeout per window, not one per read.
+    - `lookup_timeout_s` bounds fetching a search by id, which may wait for
+      a paused database to resume; it ignores the trip.
+    - `save_timeout_s` bounds a save; a timeout raises, so the caller knows
+      the row is not stored.
+    """
 
     def __init__(
-        self, inner: PlaceCache, read_timeout_s: float, lookup_timeout_s: float
+        self,
+        inner: PlaceCache,
+        read_timeout_s: float,
+        lookup_timeout_s: float,
+        save_timeout_s: float = 20.0,
+        trip_s: float = 30.0,
+        clock: Callable[[], datetime] = utcnow,
     ) -> None:
         self._inner = inner
         self._read = read_timeout_s
         self._lookup = lookup_timeout_s
+        self._save = save_timeout_s
+        self._trip = timedelta(seconds=trip_s)
+        self._clock = clock
+        self._tripped_until: datetime | None = None
 
     @property
     def inner(self) -> PlaceCache:
         return self._inner
 
-    async def _guard(self, what: str, call: Awaitable[T], timeout: float, miss: T) -> T:
+    async def _guard(
+        self,
+        what: str,
+        call: Callable[[], Awaitable[T]],
+        timeout: float,
+        miss: T,
+        fast: bool,
+    ) -> T:
+        if fast and self._tripped_until and self._clock() < self._tripped_until:
+            return miss
         try:
-            return await asyncio.wait_for(call, timeout)
+            return await asyncio.wait_for(call(), timeout)
         except Exception as error:  # noqa: BLE001 - any failure is a miss
             logger.warning("cache %s missed: %s", what, type(error).__name__)
+            if fast:
+                self._tripped_until = self._clock() + self._trip
             return miss
 
     async def get_places(self, ids: Sequence[str]) -> dict[str, CachedPlace]:
         return await self._guard(
-            "get_places", self._inner.get_places(ids), self._read, {}
+            "get_places", lambda: self._inner.get_places(ids), self._read, {}, True
         )
 
     async def get_search(
         self, key: str, max_age: timedelta, now: datetime | None = None
     ) -> StoredSearch | None:
         return await self._guard(
-            "get_search", self._inner.get_search(key, max_age, now), self._read, None
+            "get_search",
+            lambda: self._inner.get_search(key, max_age, now),
+            self._read,
+            None,
+            True,
         )
 
     async def get_search_by_id(
@@ -131,13 +163,14 @@ class TimeoutCache:
     ) -> StoredSearch | None:
         return await self._guard(
             "get_search_by_id",
-            self._inner.get_search_by_id(search_id, user_id),
+            lambda: self._inner.get_search_by_id(search_id, user_id),
             self._lookup,
             None,
+            False,
         )
 
     async def save(self, search: StoredSearch, places: Sequence[CachedPlace]) -> None:
-        await self._inner.save(search, places)
+        await asyncio.wait_for(self._inner.save(search, places), self._save)
 
 
 # --- SQL -----------------------------------------------------------------
@@ -257,7 +290,9 @@ class SqlPlaceCache:
 
     async def save(self, search: StoredSearch, places: Sequence[CachedPlace]) -> None:
         def work(cur: Any) -> None:
-            for cached in places:
+            # Upserting in id order keeps two overlapping saves from taking
+            # their row locks in opposite orders (a deadlock).
+            for cached in sorted(places, key=lambda c: c.place.id):
                 p = cached.place
                 values = (
                     p.id,

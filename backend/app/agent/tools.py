@@ -14,6 +14,10 @@ from langchain_core.tools import BaseTool, tool
 from app.places.service import SearchError, SearchService
 
 UNAVAILABLE = "The search is unavailable right now. Ask the person to try again."
+NOT_STORED = (
+    "The board could not be updated, so do not call show_places. Name the top"
+    " places in your answer and suggest the search bar."
+)
 
 
 def _principal_id(config: RunnableConfig) -> str:
@@ -54,12 +58,15 @@ def make_tools(service: SearchService) -> list[BaseTool]:
             )
         except SearchError:
             return UNAVAILABLE
+        places = [_summary(card) for card in result.places]
+        if result.saved is False:
+            # The web app reads the board from the api app, which cannot see
+            # a search that was not stored; a search id would only 404.
+            return json.dumps(
+                {"places": places, "note": NOT_STORED}, ensure_ascii=False
+            )
         return json.dumps(
-            {
-                "search_id": result.id,
-                "places": [_summary(card) for card in result.places],
-            },
-            ensure_ascii=False,
+            {"search_id": result.id, "places": places}, ensure_ascii=False
         )
 
     @tool
