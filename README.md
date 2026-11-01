@@ -2,7 +2,7 @@
 
 A web interface for the `restaurant-researcher` skill: research a venue by chatting, and compare the results side by side on a card board.
 
-**Status:** Private deployment behind authentication, not publicly accessible.
+**Status:** The code is public. The deployed app is behind sign-in and not publicly accessible.
 
 <!-- screenshot -->
 
