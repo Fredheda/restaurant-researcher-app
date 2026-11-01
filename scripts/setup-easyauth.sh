@@ -72,7 +72,7 @@ az rest --method POST \
   --body "{\"principalId\": \"$ME\", \"resourceId\": \"$SP_OBJ\", \"appRoleId\": \"00000000-0000-0000-0000-000000000000\"}" \
   --output none 2>/dev/null \
   && echo "signed-in owner assigned" \
-  || echo "signed-in owner already assigned (ok, or is a different account — run approve-user.sh for frederik.a.heda@gmail.com next)"
+  || echo "signed-in owner already assigned (ok, or is a different account — run approve-user.sh <email> next)"
 
 echo
 echo "DONE. Only assigned users can reach https://$FQDN or https://$CUSTOM_DOMAIN"

@@ -31,7 +31,7 @@ Limits: the registry is in legacy permission mode, so pushes cannot be scoped pe
 
 ## Auth
 
-Entra Easy Auth, using the `restaurant-researcher-easyauth` app registration with `appRoleAssignmentRequired=true`. Only users assigned to the app can sign in. Approved: `frederik.a.heda@gmail.com`.
+Entra Easy Auth, using the `restaurant-researcher-easyauth` app registration with `appRoleAssignmentRequired=true`. Only users assigned to the app can sign in. The approved users are the ones assigned in Entra (list them in the portal or with `az`); add one with `./scripts/approve-user.sh <email>`.
 
 The Easy Auth client secret expires; see [expirations.md](expirations.md).
 
