@@ -3,7 +3,9 @@
 This repo lives inside a multi-repo workspace. The workspace `CLAUDE.md` (`../CLAUDE.md`) owns the git rules, worktrees, and the whole PR loop ("Ways of working"); follow it. Only repo-specific facts are below.
 
 - PR titles and descriptions must not mention Claude Code or link the Claude session.
-- **Response style:** keep replies terse. Short plain sentences, no filler or pleasantries, no restating the question, no narration around tool calls. Code, commands and error messages stay exact. Write commits, PR text, docs and tickets in normal prose.
+## Response style
+
+Use the `caveman` skill. Talk terse at all times, with or without the skill: chat, Jira comments, GitHub PR and issue text, commits, specs, plans, docs. Short plain sentences, no filler. Keep code, commands and error strings exact. Security warnings and irreversible-action confirmations stay in full clear sentences. Details: workspace `CLAUDE.md`, "Response style".
 
 ## What this is
 
