@@ -40,7 +40,9 @@ def place(pid: str, name: str = "Koya") -> CachedPlace:
         type_label=None,
         types=(),
     )
-    return CachedPlace(place=google, hygiene_rating=5, fetched_at=T0)
+    return CachedPlace(
+        place=google, hygiene_rating=5, fetched_at=T0, hygiene_checked_at=T0
+    )
 
 
 def search(sid: str, user: str = "u1", key: str = "ramen|", at: datetime = T0):

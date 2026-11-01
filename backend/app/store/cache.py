@@ -30,8 +30,9 @@ def utcnow() -> datetime:
 @dataclass(frozen=True)
 class CachedPlace:
     place: GooglePlace
-    hygiene_rating: int | None
-    fetched_at: datetime
+    hygiene_rating: int | None  # None with a check time = not rated
+    fetched_at: datetime  # when the Google fields were fetched
+    hygiene_checked_at: datetime | None  # None = lookup failed, retry
 
 
 @dataclass(frozen=True)
@@ -141,8 +142,17 @@ class TimeoutCache:
 
 _PLACE_COLUMNS = (
     "id, name, address, postcode, neighbourhood, lat, lng, rating, review_count,"
-    " price_tier, open_now, photo_ref, type_label, types, hygiene_rating, fetched_at"
+    " price_tier, open_now, photo_ref, type_label, types, hygiene_rating, fetched_at,"
+    " hygiene_checked_at"
 )
+
+
+def _utc(value: datetime | None) -> datetime | None:
+    return value.replace(tzinfo=UTC) if value is not None else None
+
+
+def _naive(value: datetime | None) -> datetime | None:
+    return value.replace(tzinfo=None) if value is not None else None
 
 
 def _row_to_place(row: Sequence[Any]) -> CachedPlace:
@@ -162,7 +172,7 @@ def _row_to_place(row: Sequence[Any]) -> CachedPlace:
         type_label=row[12],
         types=tuple(json.loads(row[13] or "[]")),
     )
-    return CachedPlace(google, row[14], row[15].replace(tzinfo=UTC))
+    return CachedPlace(google, row[14], row[15].replace(tzinfo=UTC), _utc(row[16]))
 
 
 class SqlPlaceCache:
@@ -262,6 +272,7 @@ class SqlPlaceCache:
                     json.dumps(list(p.types)),
                     cached.hygiene_rating,
                     cached.fetched_at.replace(tzinfo=None),
+                    _naive(cached.hygiene_checked_at),
                 )
                 # HOLDLOCK makes the upsert safe for two identical searches
                 # saving the same place at once.
@@ -271,9 +282,10 @@ class SqlPlaceCache:
                     " WHEN MATCHED THEN UPDATE SET name = ?, address = ?, postcode = ?,"
                     " neighbourhood = ?, lat = ?, lng = ?, rating = ?, review_count = ?,"
                     " price_tier = ?, open_now = ?, photo_ref = ?, type_label = ?,"
-                    " types = ?, hygiene_rating = ?, fetched_at = ?"
+                    " types = ?, hygiene_rating = ?, fetched_at = ?,"
+                    " hygiene_checked_at = ?"
                     f" WHEN NOT MATCHED THEN INSERT ({_PLACE_COLUMNS})"
-                    " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);",
+                    f" VALUES ({', '.join('?' for _ in values)});",
                     (p.id, *values[1:], *values),
                 )
             cur.execute(

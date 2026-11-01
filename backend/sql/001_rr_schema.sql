@@ -24,7 +24,8 @@ CREATE TABLE rr.places (
     type_label     NVARCHAR(200)  NULL,
     types          NVARCHAR(2000) NULL,  -- JSON array of Google types
     hygiene_rating TINYINT        NULL,  -- FSA FHRS 0 to 5; NULL = not rated
-    fetched_at     DATETIME2      NOT NULL
+    fetched_at     DATETIME2      NOT NULL,  -- Google fields
+    hygiene_checked_at DATETIME2  NULL       -- NULL = lookup failed, retry
 );
 GO
 
