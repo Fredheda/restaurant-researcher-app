@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build the images (web, backend) natively on linux/amd64 with ACR Tasks and
-# push :latest + :<git-sha> for each. Auth: the caller's live `az login` session (or the
-# GitHub build identity) — no stored credentials.
+# push :latest + :<git-sha> for each. Auth: the caller's live `az login`
+# session (or the GitHub build identity) — no stored credentials.
 #
 # An image that already exists for the commit is skipped, so building a commit
 # twice (a second Deploy of the same SHA, or ship.sh after a Deploy) is a

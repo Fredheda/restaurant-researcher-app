@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Ship a code change: build+push the images for the current commit, then roll
-# the container apps that exist to them. The laptop fallback for the Deploy workflow. Refuses
-# to run on a dirty tree so the deployed SHA is what you have checked out.
+# the container apps that exist to them. The laptop fallback for the Deploy
+# workflow. Refuses to run on a dirty tree so the deployed SHA is what you
+# have checked out.
 #
 # Usage: ./scripts/ship.sh
 set -euo pipefail
