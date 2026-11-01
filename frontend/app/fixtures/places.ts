@@ -3,6 +3,8 @@ import type { PlaceResult } from "../types";
 export const PLACES: PlaceResult[] = [
   {
     id: "fogo-de-chao-bishopsgate",
+    hygieneRating: 5,
+    whyThis: "First rodizio on your list; the caipirinha fits your rum and citrus picks.",
     name: "Fogo de Chão",
     type: "Brazilian steakhouse (rodizio)",
     neighbourhood: "Bishopsgate, London",
@@ -50,7 +52,7 @@ export const PLACES: PlaceResult[] = [
         {
           mode: "elizabeth-line",
           line: "Elizabeth line",
-          lineColor: "#7156A5",
+          lineColor: "#6950A1",
           from: "Canary Wharf",
           to: "Liverpool Street",
           durationMinutes: 7,
@@ -68,6 +70,8 @@ export const PLACES: PlaceResult[] = [
   },
   {
     id: "sabor-mayfair",
+    hygieneRating: 4,
+    whyThis: "Low fit: the signature dishes miss what you rate highest.",
     name: "Sabor",
     type: "Spanish",
     neighbourhood: "Mayfair, London",
@@ -125,6 +129,8 @@ export const PLACES: PlaceResult[] = [
   },
   {
     id: "padella-shoreditch",
+    hygieneRating: null,
+    whyThis: "You rated it before; order the pici cacio e pepe again.",
     name: "Padella",
     type: "Italian (pasta)",
     neighbourhood: "Shoreditch, London",
@@ -188,6 +194,7 @@ export const PLACES: PlaceResult[] = [
   },
   {
     id: "dishoom-canary-wharf",
+    hygieneRating: 5,
     name: "Dishoom",
     type: "Indian (Bombay café)",
     neighbourhood: "Canary Wharf, London",
@@ -231,6 +238,7 @@ export const PLACES: PlaceResult[] = [
   },
   {
     id: "kbox-city",
+    enriching: true,
     name: "K-BOX",
     type: "Korean BBQ",
     neighbourhood: "City of London",

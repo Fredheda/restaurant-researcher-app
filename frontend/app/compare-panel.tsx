@@ -15,42 +15,47 @@ export function ComparePanel({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-3 sm:p-4"
+      onClick={onClose}
+    >
       <div
         data-testid="compare-panel"
-        className="w-full max-w-2xl rounded-sm bg-surface p-6"
+        className="max-h-[90dvh] w-full max-w-2xl overflow-y-auto rounded-lg bg-surface p-4 sm:p-6"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-display text-xl text-navy">Compare {places.length} places</h2>
-          <button type="button" onClick={onClose} aria-label="Close" className="text-navy-muted">
+          <h2 className="font-display text-xl font-semibold text-ink">Compare {places.length} places</h2>
+          <button type="button" onClick={onClose} aria-label="Close" className="text-muted">
             ✕
           </button>
         </div>
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="text-left text-navy-muted">
-              <th></th>
-              {places.map((p) => (
-                <th key={p.id} className="py-1 font-display font-normal text-navy">
-                  {p.name}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {ROWS.map((row) => (
-              <tr key={row.label} className="border-t border-hairline">
-                <td className="py-1.5 text-navy-muted">{row.label}</td>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="text-left text-muted">
+                <th></th>
                 {places.map((p) => (
-                  <td key={p.id} className="py-1.5 text-navy">
-                    {row.value(p)}
-                  </td>
+                  <th key={p.id} className="py-1 pr-2 font-display font-normal text-ink">
+                    {p.name}
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {ROWS.map((row) => (
+                <tr key={row.label} className="border-t border-hairline">
+                  <td className="py-1.5 pr-2 text-muted">{row.label}</td>
+                  {places.map((p) => (
+                    <td key={p.id} className="py-1.5 pr-2 text-ink">
+                      {row.value(p)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

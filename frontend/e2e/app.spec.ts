@@ -29,6 +29,12 @@ test("production server boots and hydrates with no errors", async ({ page }) => 
   await expect(card(page, "sabor-mayfair")).toBeVisible();
   await expect(card(page, "padella-shoreditch")).toBeVisible();
 
+  // At 1280 px the board has two columns: the seeded cards sit side by side.
+  const first = (await card(page, "sabor-mayfair").boundingBox())!;
+  const second = (await card(page, "padella-shoreditch").boundingBox())!;
+  expect(Math.abs(first.y - second.y)).toBeLessThan(2);
+  expect(second.x).toBeGreaterThan(first.x + first.width / 2);
+
   // Selecting two cards shows the compare button only if React hydrated.
   await selectCheckbox(page, "Sabor").check();
   await selectCheckbox(page, "Padella").check();

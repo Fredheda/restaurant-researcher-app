@@ -1,5 +1,20 @@
 import type { PlaceResult } from "./types";
-import { JourneyWidget } from "./journey-widget";
+import { compactCount, hygieneLabel, photoStyle, routeSummary } from "./place-view";
+
+function Shimmer({ width }: { width: string }) {
+  return (
+    <div
+      className="h-2.5 rounded-sm"
+      style={{
+        width,
+        background:
+          "linear-gradient(90deg, rgb(128 128 128 / 15%), rgb(128 128 128 / 35%), rgb(128 128 128 / 15%))",
+        backgroundSize: "200% 100%",
+        animation: "shimmer 1.4s infinite",
+      }}
+    />
+  );
+}
 
 export function Card({
   place,
@@ -12,61 +27,65 @@ export function Card({
   onToggleSelect: (id: string) => void;
   onOpen: (id: string) => void;
 }) {
-  const topDishes = place.menu.items.slice(0, 3);
+  const hygiene = hygieneLabel(place.hygieneRating);
 
   return (
     <div
       data-testid={`card-${place.id}`}
-      className="grid grid-cols-1 gap-4 rounded-sm border border-hairline bg-surface p-4 sm:grid-cols-2 lg:grid-cols-4"
+      className="relative flex min-w-0 flex-col overflow-hidden rounded-lg border border-hairline bg-surface"
     >
-      <button type="button" onClick={() => onOpen(place.id)} className="col-span-full text-left">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="font-display text-xl text-navy">{place.name}</div>
-            <div className="text-sm text-navy-muted">
-              {place.type} · {place.neighbourhood}
-            </div>
-          </div>
-          <label
-            className="flex items-center gap-1 text-xs text-navy-muted"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <input
-              type="checkbox"
-              checked={selected}
-              onChange={() => onToggleSelect(place.id)}
-              aria-label={`Select ${place.name} to compare`}
-            />
-            Compare
-          </label>
-        </div>
-        <div className="mt-2 flex items-center gap-3 text-sm">
-          <span className="font-display text-navy italic">{place.overview.rating.toFixed(1)}</span>
-          <span className="text-navy-muted">{place.overview.reviewCount} reviews</span>
-          <span className="text-navy-muted">{place.priceTier}</span>
-        </div>
-        <div className="mt-1 text-xs text-good">{place.overview.openStatus}</div>
+      <div className="h-28 flex-shrink-0" style={photoStyle(place)} aria-hidden="true" />
+      <label className="absolute top-2 right-2 flex items-center gap-1 rounded-sm bg-surface/90 px-1.5 py-0.5 text-xs text-ink">
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={() => onToggleSelect(place.id)}
+          aria-label={`Select ${place.name} to compare`}
+        />
+        Compare
+      </label>
+
+      <button
+        type="button"
+        onClick={() => onOpen(place.id)}
+        className="flex flex-1 flex-col gap-1.5 p-3 text-left"
+      >
+        <span className="font-display text-lg leading-tight font-semibold break-words text-ink">
+          {place.name}
+        </span>
+        <span className="flex flex-wrap items-center gap-1.5 text-xs">
+          <span className="rounded-sm bg-star-bg px-1.5 py-0.5 font-semibold text-star-fg">
+            {`★ ${place.overview.rating.toFixed(1)} · ${compactCount(place.overview.reviewCount)}`}
+          </span>
+          {hygiene && (
+            <span className="rounded-sm bg-hyg-bg px-1.5 py-0.5 font-semibold text-hyg-fg">
+              {hygiene}
+            </span>
+          )}
+          <span className="text-muted">{place.priceTier}</span>
+          <span className="text-muted">{place.overview.openStatus}</span>
+        </span>
+
+        {place.enriching ? (
+          <span className="flex flex-col gap-1.5 py-0.5">
+            <Shimmer width="90%" />
+            <Shimmer width="60%" />
+          </span>
+        ) : (
+          place.whyThis && <span className="text-xs text-ink italic">{place.whyThis}</span>
+        )}
+
+        <span className="mt-auto flex items-baseline justify-between gap-2 pt-1 text-xs text-muted">
+          <span className="min-w-0 break-words">{routeSummary(place.journey)}</span>
+          {place.enriching ? (
+            <span className="flex-shrink-0">reading menu…</span>
+          ) : (
+            <span className="flex-shrink-0 font-bold text-forest">
+              {`Fit ${place.tasteFit.score.toFixed(1)}`}
+            </span>
+          )}
+        </span>
       </button>
-
-      <div>
-        <ul className="mt-1 space-y-0.5 text-sm text-navy">
-          {topDishes.map((item) => (
-            <li key={item.name}>
-              {item.name}
-              {item.matchesTaste && <span className="ml-1 text-xs text-brass">✓</span>}
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div>
-        <div className="font-display text-2xl text-brass">
-          {place.tasteFit.score.toFixed(1)}
-          <span className="text-sm font-normal text-navy-muted">/10</span>
-        </div>
-      </div>
-
-      <JourneyWidget journey={place.journey} variant="compact" />
     </div>
   );
 }

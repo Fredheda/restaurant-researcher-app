@@ -9,7 +9,7 @@ Use the `caveman` skill. Talk terse at all times, with or without the skill: cha
 
 ## What this is
 
-Website for the `restaurant-researcher` skill: venue research as a card board with a chat interface. Frontend only for now (Next.js 16, React 19, Tailwind 4), serving stub chat and place data from fixtures. The `PlaceResult` type in `frontend/app/types.ts` is the contract the future agent fills.
+Website for the `restaurant-researcher` skill: venue research as a card board with a chat interface. Frontend only for now (Next.js 16, React 19, Tailwind 4), serving stub chat and place data from fixtures, in the "Ink and paper" theme (design tokens in `frontend/app/globals.css`; mobile-first, works from 360 px). The `PlaceResult` type in `frontend/app/types.ts` is the contract the future agent fills.
 
 ## Commands
 

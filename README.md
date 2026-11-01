@@ -8,9 +8,9 @@ A web interface for the `restaurant-researcher` skill: research a venue by chatt
 
 ## What it does
 
-- **Research by chat.** Ask about a restaurant in the chat panel. The app shows progress steps (address and hours, ratings, journey) and adds the place to the board.
-- **Card board.** Each place appears as a card with its rating, review count, price tier, opening status, top dishes, a taste-fit score out of 10 and a compact journey summary.
-- **Detail view.** Open a card to see the full picture: review quotes (positive and negative), the whole menu with dishes that match your taste marked, the reasoning behind the taste-fit score and any misses, and the full leg-by-leg journey.
+- **Research by chat.** Ask about a restaurant in the chat. The app shows progress steps (address and hours, ratings, journey) and adds the place to the board. The chat is a column on the right on wide screens and a bottom sheet on phones.
+- **Card board.** Each place appears as a photo-led card with its Google rating, hygiene rating, price tier, opening status, a one-line reason it suits you, the route summary and a fit score out of 10. A card still being researched shows placeholder lines.
+- **Detail view.** Open a card to see the full picture: review quotes (positive and negative), the whole menu with dishes that match your taste marked, the reasoning behind the fit score and any misses, and a schematic tube-map style route from Canary Wharf. From there you can open the rating sheet to score a visit (dishes, cocktails, vibe, staff, service); saving is a demo for now.
 - **Compare.** Select two to four cards and compare taste fit, price, rating and journey time in one table.
 
 The current phase is frontend only. Chat replies and place data come from built-in demo fixtures, so the UI can be built and tested before the research agent is connected.
@@ -27,7 +27,7 @@ flowchart LR
     S --> F[(Demo place fixtures)]
 ```
 
-The app is a single Next.js page. A chat panel on the right sends a query to a stub responder, which plays a short sequence of progress messages and then looks the place up by name (accent-insensitive) in a set of fixtures. A matching place is added to the board. Selecting cards enables the compare view. A typed `PlaceResult` model (overview, menu, taste fit, journey, optional existing rating) is the contract the real research agent will fill later.
+The app is a single Next.js page. The chat sends a query to a stub responder, which plays a short sequence of progress messages and then looks the place up by name (accent-insensitive) in a set of fixtures. A matching place is added to the board. Selecting cards enables the compare view. A typed `PlaceResult` model (overview, menu, taste fit, journey, optional existing rating) is the contract the real research agent will fill later.
 
 The app runs on Azure Container Apps behind Microsoft Entra Easy Auth: only approved users can reach it, and it scales to zero when idle.
 

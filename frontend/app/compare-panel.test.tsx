@@ -13,4 +13,9 @@ describe("ComparePanel", () => {
     expect(screen.getByText("Taste fit")).toBeInTheDocument();
     expect(screen.getByText(`${two[0].tasteFit.score.toFixed(1)}/10`)).toBeInTheDocument();
   });
+
+  it("keeps the table inside a horizontally scrollable wrapper", () => {
+    render(<ComparePanel places={two} onClose={vi.fn()} />);
+    expect(screen.getByRole("table").parentElement).toHaveClass("overflow-x-auto");
+  });
 });
