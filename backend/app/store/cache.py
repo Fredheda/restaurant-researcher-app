@@ -103,6 +103,10 @@ class TimeoutCache:
         self._read = read_timeout_s
         self._lookup = lookup_timeout_s
 
+    @property
+    def inner(self) -> PlaceCache:
+        return self._inner
+
     async def _guard(self, what: str, call: Awaitable[T], timeout: float, miss: T) -> T:
         try:
             return await asyncio.wait_for(call, timeout)

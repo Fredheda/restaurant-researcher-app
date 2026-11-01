@@ -10,6 +10,9 @@ agent registry of the web app's CopilotKit runtime route, and the
 provider's `agent` prop.
 """
 
+import logging
+
+from ag_ui.core import EventType, RunErrorEvent
 from ag_ui.core.types import RunAgentInput
 from ag_ui.encoder import EventEncoder
 from copilotkit import LangGraphAGUIAgent
@@ -19,6 +22,8 @@ from langgraph.graph.state import CompiledStateGraph
 
 from app.api.principal import principal_from_headers
 from app.services import Services
+
+logger = logging.getLogger(__name__)
 
 AGENT_NAME = "restaurant_researcher"
 AGENT_PATH = f"/agent/{AGENT_NAME}"
@@ -41,7 +46,20 @@ def mount_agent(app: FastAPI, graph: CompiledStateGraph, services: Services) -> 
         encoder = EventEncoder(accept=request.headers.get("accept") or "")
 
         async def stream():
-            async for event in agent.run(input_data):
-                yield encoder.encode(event)
+            try:
+                async for event in agent.run(input_data):
+                    yield encoder.encode(event)
+            except Exception as error:  # noqa: BLE001
+                # A model or tool failure ends the run with an AG-UI error
+                # event instead of a dropped connection. Only the class is
+                # logged: provider errors can echo the API key.
+                logger.warning("agent run failed: %s", type(error).__name__)
+                yield encoder.encode(
+                    RunErrorEvent(
+                        type=EventType.RUN_ERROR,
+                        message="The assistant hit an error. Try again.",
+                        code="agent_error",
+                    )
+                )
 
         return StreamingResponse(stream(), media_type=encoder.get_content_type())

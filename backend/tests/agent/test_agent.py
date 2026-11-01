@@ -170,6 +170,26 @@ async def test_get_place_unknown_id_is_a_plain_message() -> None:
     assert "not found" in result["content"]
 
 
+class BrokenModel(ScriptedChatModel):
+    def _next(self):
+        raise RuntimeError("Incorrect API key provided: sk-secret-123")
+
+
+async def test_model_failure_ends_with_run_error_and_no_detail(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    h = Harness([])
+    h.model = BrokenModel()
+    h.app = create_app("agent", h.services, graph=build_graph(h.model, h.search))
+    r = await h.run()
+    evs = events(r)
+    assert types(evs)[0] == "RUN_STARTED"
+    assert types(evs)[-1] == "RUN_ERROR"
+    assert "sk-secret" not in r.text
+    assert "sk-secret" not in caplog.text
+    assert "RuntimeError" in caplog.text
+
+
 async def test_run_without_principal_is_401() -> None:
     h = Harness(["never"])
     r = await h.run(headers=None)

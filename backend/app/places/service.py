@@ -159,6 +159,10 @@ class SearchService:
             cached = [rows[pid] for pid in stored.place_ids if pid in rows]
         return Search(stored.id, stored.query, await self._cards(cached, now))
 
+    @property
+    def cache(self) -> PlaceCache:
+        return self._cache
+
     async def place(self, place_id: str) -> dict[str, Any] | None:
         """One card by place id, from this process's recent searches or the
         shared place cache; None when unknown. Place rows are not personal."""

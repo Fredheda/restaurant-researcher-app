@@ -1,10 +1,34 @@
 # Development
 
-Run everything from `frontend/` unless noted. There is no backend yet, and no environment variables are needed: chat and place data come from built-in fixtures in `frontend/app/fixtures/places.ts`.
+Run the frontend from `frontend/` and the backend from `backend/`. The frontend does not call the backend yet: chat and place data come from built-in fixtures in `frontend/app/fixtures/places.ts`, and it needs no environment variables.
 
 ## Prerequisites
 
 - Node 24 with npm 12.0.2. The Docker image and CI both use these versions (`npm install -g npm@12.0.2`).
+- For the backend: Python 3.13 and Poetry 2.
+
+## Backend
+
+One FastAPI codebase and image for two apps. `APP_ROLE=api` serves `/api/searches` (Google Places search with FSA hygiene ratings, cached) and its events stream; `APP_ROLE=agent` serves the LangGraph agent over AG-UI at `/agent/restaurant_researcher`. Both serve `/health`.
+
+```bash
+cd backend
+poetry install
+poetry run pytest -q && poetry run ruff check . && poetry run ruff format --check . && poetry run pyright
+```
+
+The tests are offline: Google, the FSA API, the database and the model are fakes passed to `create_app`.
+
+To run an app locally, put the variables in your shell (never in the repo). Without `SQL_SERVER` the cache and user store are in memory. `APP_ENV=local` accepts requests without the Easy Auth headers as a fixed dev user; it is refused when `SQL_SERVER` is set.
+
+```bash
+APP_ROLE=api APP_ENV=local GOOGLE_PLACES_API_KEY=... poetry run uvicorn app.main:app --port 8000
+curl -s localhost:8000/api/searches -H 'content-type: application/json' -d '{"query":"best ramen near Soho"}'
+```
+
+The agent role also needs `OPENAI_API_KEY` (and optionally `OPENAI_MODEL`). With the in-memory store, a search the agent ran is not visible to a separate local api process.
+
+The schema scripts live in `backend/sql/`; the apps never run DDL.
 
 ## Install and run
 
