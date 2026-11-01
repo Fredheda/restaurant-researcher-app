@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hygieneLabel, photoStyle, routeSummary } from "./place-view";
+import { compactCount, hygieneLabel, photoStyle, routeSummary } from "./place-view";
 import { PLACES } from "./fixtures/places";
 
 const fogo = PLACES.find((p) => p.id === "fogo-de-chao-bishopsgate")!;
@@ -25,6 +25,14 @@ describe("routeSummary", () => {
     const walk = { mode: "walking" as const, line: "Walk", lineColor: "#999999", from: "A", to: "B", durationMinutes: 5 };
     expect(routeSummary({ totalMinutes: 5, legs: [walk] })).toBe("Walk · 5 min");
     expect(routeSummary({ totalMinutes: 5, legs: [] })).toBe("No route");
+  });
+});
+
+describe("compactCount", () => {
+  it("keeps small counts and shortens thousands", () => {
+    expect(compactCount(126)).toBe("126");
+    expect(compactCount(2140)).toBe("2.1k");
+    expect(compactCount(10000)).toBe("10k");
   });
 });
 

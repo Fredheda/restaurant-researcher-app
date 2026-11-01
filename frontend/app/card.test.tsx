@@ -13,6 +13,42 @@ describe("Card", () => {
     expect(screen.getByText(/7\.5/)).toBeInTheDocument();
   });
 
+  it("shows the rating badge, hygiene badge, why-this line and the route footer", () => {
+    render(<Card place={fogo} selected={false} onToggleSelect={vi.fn()} onOpen={vi.fn()} />);
+    expect(screen.getByText("★ 4.2 · 126")).toBeInTheDocument();
+    expect(screen.getByText("Hygiene 5")).toBeInTheDocument();
+    expect(screen.getByText(/First rodizio on your list/)).toBeInTheDocument();
+    expect(screen.getByText("Elizabeth line → Liverpool Street · 22 min")).toBeInTheDocument();
+    expect(screen.getByText("Fit 7.5")).toBeInTheDocument();
+  });
+
+  it("says when the hygiene rating is missing and hides the badge when unknown", () => {
+    const { rerender } = render(
+      <Card place={{ ...fogo, hygieneRating: null }} selected={false} onToggleSelect={vi.fn()} onOpen={vi.fn()} />
+    );
+    expect(screen.getByText("Hygiene not rated")).toBeInTheDocument();
+    rerender(
+      <Card place={{ ...fogo, hygieneRating: undefined }} selected={false} onToggleSelect={vi.fn()} onOpen={vi.fn()} />
+    );
+    expect(screen.queryByText(/Hygiene/)).not.toBeInTheDocument();
+  });
+
+  it("draws shimmer lines instead of the why-line and fit while enriching", () => {
+    render(
+      <Card place={{ ...fogo, enriching: true }} selected={false} onToggleSelect={vi.fn()} onOpen={vi.fn()} />
+    );
+    expect(screen.getByText("reading menu…")).toBeInTheDocument();
+    expect(screen.queryByText(/First rodizio/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Fit /)).not.toBeInTheDocument();
+  });
+
+  it("renders a complete card with no why-line", () => {
+    render(
+      <Card place={{ ...fogo, whyThis: undefined }} selected={false} onToggleSelect={vi.fn()} onOpen={vi.fn()} />
+    );
+    expect(screen.getByText("Fit 7.5")).toBeInTheDocument();
+  });
+
   it("calls onOpen when the title area is clicked", async () => {
     const onOpen = vi.fn();
     render(<Card place={fogo} selected={false} onToggleSelect={vi.fn()} onOpen={onOpen} />);

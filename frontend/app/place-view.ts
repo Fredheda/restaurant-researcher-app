@@ -30,6 +30,13 @@ export function routeSummary(journey: PlaceResult["journey"]): string {
   return `${transit.line} → ${transit.to} · ${journey.totalMinutes} min`;
 }
 
+/** Review count for a badge: 126, 2.1k, 10k. */
+export function compactCount(n: number): string {
+  if (n < 1000) return String(n);
+  const k = n / 1000;
+  return `${k >= 10 ? Math.round(k) : Math.round(k * 10) / 10}k`;
+}
+
 /** Hygiene badge text: null when the rating is unknown to the data, a label otherwise. */
 export function hygieneLabel(rating: number | null | undefined): string | null {
   if (rating === undefined) return null;
