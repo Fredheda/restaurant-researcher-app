@@ -1,10 +1,44 @@
 # Development
 
-Run everything from `frontend/` unless noted. The board starts with two fixture places (`frontend/app/fixtures/places.ts`); the search bar and the assistant panel replace them with real results from the backend.
+Run the frontend from `frontend/` and the backend from `backend/`. The board starts with two fixture places (`frontend/app/fixtures/places.ts`); the search bar and the assistant panel replace them with real results from the backend.
 
 ## Prerequisites
 
 - Node 24 with npm 12.0.2. The Docker image and CI both use these versions (`npm install -g npm@12.0.2`).
+- For the backend: Python 3.13 and Poetry 2.
+
+## Backend
+
+One FastAPI codebase and image for two apps. `APP_ROLE=api` serves `/api/searches` (Google Places search with FSA hygiene ratings, cached) and its events stream; `APP_ROLE=agent` serves the LangGraph agent over AG-UI at `/agent/restaurant_researcher`. Both serve `/health`.
+
+```bash
+cd backend
+poetry install
+poetry run pytest -q && poetry run ruff check . && poetry run ruff format --check . && poetry run pyright
+```
+
+The tests are offline: Google, the FSA API, the database and the model are fakes passed to `create_app`.
+
+To run an app locally, put the variables in your shell (never in the repo). `backend/app/config.py` reads them once at startup and stops with the missing name.
+
+| Variable | Needed by | Meaning |
+|---|---|---|
+| `APP_ROLE` | both | `api` or `agent` |
+| `GOOGLE_PLACES_API_KEY` | both | Places API (New) key; the agent runs the search in-process |
+| `OPENAI_API_KEY` | agent | model key |
+| `OPENAI_MODEL` | agent, optional | model name; the default is in `config.py` |
+| `SQL_SERVER`, `SQL_DATABASE` | optional | Azure SQL cache and user store; unset means in memory |
+| `AZURE_CLIENT_ID` | deployed only | managed identity for SQL; unset means `az login` |
+| `APP_ENV` | optional | `local` accepts requests without the Easy Auth headers as a fixed dev user; refused when `SQL_SERVER` is set |
+
+```bash
+APP_ROLE=api APP_ENV=local GOOGLE_PLACES_API_KEY=... poetry run uvicorn app.main:app --port 8000
+curl -s localhost:8000/api/searches -H 'content-type: application/json' -d '{"query":"best ramen near Soho"}'
+```
+
+With the in-memory store, a search the agent ran is not visible to a separate local api process.
+
+The schema scripts in `backend/sql/` are idempotent and applied by hand by the owner before the first deploy; the apps never run DDL.
 
 ## Install and run
 
@@ -39,7 +73,7 @@ The browser tests (`frontend/e2e/`) serve `.next/standalone` laid out as the Doc
 
 `./scripts/ci-local.sh` runs all of them in CI order (plus `actionlint` when installed) and stops at the first failure.
 
-GitHub Actions (`.github/workflows/ci.yml`) runs the same checks on every pull request. A draft pull request runs only the light job (`checks`: tests, lint, type-check); the `build` job (build plus browser tests) and the AI review start when the PR is marked ready (`gh pr ready`). A docs-only pull request (only `*.md` files or files under `docs/`) skips both jobs. A merge to `main` starts no run.
+GitHub Actions (`.github/workflows/ci.yml`) runs the same checks on every pull request. A draft pull request runs only the light jobs (`backend` and `checks`: tests, lint, type-check); the `build` job (build plus browser tests) and the AI review start when the PR is marked ready (`gh pr ready`). A docs-only pull request (only `*.md` files or files under `docs/`) skips all three. A merge to `main` starts no run.
 
 `.github/workflows/security.yml` adds secret scanning and workflow linting on every pull request, plus a weekly dependency audit (`npm-audit`). If the weekly audit fails, open the run under Actions > Security, then bump the vulnerable dependency; there is no PR to block, so the failure is the alert.
 

@@ -4,7 +4,7 @@ name: CI
 #
 # Runs on pull requests only: a merge to main starts no run, because the PR
 # already ran the same checks. A draft PR runs only the light jobs (changes,
-# checks); the build runs once the PR is ready for review. A newer push to the
+# backend, checks); the build runs once the PR is ready for review. A newer push to the
 # same PR cancels the run that is still going. CI never builds or deploys an
 # image: the manual Deploy workflow (deploy.yml) does that.
 on:
@@ -37,6 +37,31 @@ jobs:
           else
             echo "code=false" >> "$GITHUB_OUTPUT"
           fi
+
+  # Light: backend tests, lint, format and types, on every push to a draft or
+  # ready PR.
+  backend:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Poetry
+        run: pipx install "poetry>=2.0,<3.0"
+      - uses: actions/setup-python@v7
+        with:
+          python-version-file: backend/.python-version
+          cache: poetry
+          cache-dependency-path: backend/poetry.lock
+      - run: poetry install --no-interaction
+      - run: poetry run pytest -q
+      - run: poetry run ruff check .
+      - run: poetry run ruff format --check .
+      - run: poetry run pyright
 
   # Light: tests, lint and type-check, on every push to a draft or ready PR.
   checks:

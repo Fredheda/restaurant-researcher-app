@@ -8,6 +8,20 @@ cd "$(dirname "$0")/.."
 
 ./scripts/tests/test-deploy-scripts.sh
 
+# Backend: tests, lint, format, type-check (the `backend` job in ci.yml).
+if [ -f backend/pyproject.toml ]; then
+  (
+    cd backend
+    poetry install --no-interaction --no-ansi
+    poetry run pytest -q
+    poetry run ruff check .
+    poetry run ruff format --check .
+    poetry run pyright
+  )
+else
+  echo "backend: no pyproject.toml, skipped"
+fi
+
 cd frontend
 
 # CI installs npm 12.0.2 on Node 24 (see frontend/Dockerfile).

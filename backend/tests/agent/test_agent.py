@@ -1,0 +1,278 @@
+import asyncio
+import json
+from typing import Any
+
+import pytest
+from httpx import ASGITransport, AsyncClient
+from langchain_core.runnables import RunnableConfig
+from langgraph.checkpoint.base import BaseCheckpointSaver
+
+from app.agent import server
+from app.agent.graph import SYSTEM_PROMPT, build_graph
+from app.agent.server import AGENT_NAME, AGENT_PATH, ThreadOwners
+from app.main import create_app
+from app.places.service import SearchService
+from app.services import Services
+from app.store.cache import InMemoryPlaceCache
+from app.store.users import InMemoryUserStore
+from tests.agent.scripted_model import Call, ScriptedChatModel
+from tests.fakes import FakeFhrs, FakePlaces, gplace
+
+ALICE = {"x-ms-client-principal-id": "alice-oid"}
+
+FRONTEND_TOOLS = [
+    {
+        "name": "show_places",
+        "description": "Show a search on the board.",
+        "parameters": {
+            "type": "object",
+            "properties": {"search_id": {"type": "string"}},
+            "required": ["search_id"],
+        },
+    },
+    {
+        "name": "open_place",
+        "description": "Open a place's details.",
+        "parameters": {
+            "type": "object",
+            "properties": {"place_id": {"type": "string"}},
+            "required": ["place_id"],
+        },
+    },
+]
+
+
+def run_input(text: str = "best ramen near Soho") -> dict[str, Any]:
+    return {
+        "threadId": "thread-1",
+        "runId": "run-1",
+        "state": {},
+        "messages": [{"id": "m1", "role": "user", "content": text}],
+        "tools": FRONTEND_TOOLS,
+        "context": [],
+        "forwardedProps": {},
+    }
+
+
+class SlowSaveCache(InMemoryPlaceCache):
+    """Saves take a moment, as SQL does, so a test can tell a save the tool
+    awaited from one still running in the background."""
+
+    async def save(self, search, places) -> None:
+        await asyncio.sleep(0.2)
+        await super().save(search, places)
+
+
+class Harness:
+    def __init__(self, script: list) -> None:
+        self.places = FakePlaces([gplace("p1"), gplace("p2", rating=4.9)])
+        self.cache = SlowSaveCache()
+        self.search = SearchService(self.places, FakeFhrs(), self.cache)
+        self.services = Services(search=self.search, users=InMemoryUserStore())
+        self.model = ScriptedChatModel(script=script)
+        self.graph = build_graph(self.model, self.search)
+        self.app = create_app("agent", self.services, graph=self.graph)
+
+    async def run(self, headers: dict[str, str] | None = ALICE, text: str = "ramen"):
+        async with AsyncClient(
+            transport=ASGITransport(app=self.app), base_url="http://t"
+        ) as c:
+            r = await c.post(
+                AGENT_PATH,
+                json=run_input(text),
+                headers={**(headers or {}), "accept": "text/event-stream"},
+            )
+        return r
+
+
+def events(response) -> list[dict[str, Any]]:
+    return [
+        json.loads(line[len("data: ") :])
+        for line in response.text.splitlines()
+        if line.startswith("data: ")
+    ]
+
+
+def types(evs: list[dict[str, Any]]) -> list[str]:
+    return [e["type"] for e in evs]
+
+
+def test_agent_id_is_the_shared_constant() -> None:
+    assert AGENT_NAME == "restaurant_researcher"
+    assert AGENT_PATH == "/agent/restaurant_researcher"
+
+
+def test_system_prompt_names_the_frontend_tools() -> None:
+    for name in ("search_places", "get_place", "show_places", "open_place"):
+        assert name in SYSTEM_PROMPT
+
+
+async def test_text_run_streams_started_text_finished() -> None:
+    h = Harness(["Hello there, ask me for food."])
+    r = await h.run()
+    assert r.status_code == 200
+    ts = types(events(r))
+    assert ts[0] == "RUN_STARTED"
+    assert ts[-1] == "RUN_FINISHED"
+    assert "TEXT_MESSAGE_CONTENT" in ts
+    text = "".join(e["delta"] for e in events(r) if e["type"] == "TEXT_MESSAGE_CONTENT")
+    assert text == "Hello there, ask me for food."
+
+
+async def test_search_places_result_carries_the_search_id() -> None:
+    h = Harness([Call("search_places", {"query": "best ramen"}), "Here you go."])
+    evs = events(await h.run())
+    results = [e for e in evs if e["type"] == "TOOL_CALL_RESULT"]
+    assert results, types(evs)
+    payload = json.loads(results[0]["content"])
+    search_id = payload["search_id"]
+    assert [p["id"] for p in payload["places"]] == ["p2", "p1"]
+    assert set(payload["places"][0]) == {"id", "name", "rating", "price", "area"}
+    # Saved before the tool returned: the api app reads it from the store.
+    stored = await h.cache.get_search_by_id(search_id, "alice-oid")
+    assert stored is not None
+    assert types(evs)[-1] == "RUN_FINISHED"
+
+
+async def test_bound_tools_include_backend_and_frontend_tools() -> None:
+    h = Harness(["ok"])
+    await h.run()
+    assert {"search_places", "get_place", "show_places", "open_place"} <= set(
+        h.model.log["tools"]
+    )
+
+
+async def test_search_failure_ends_with_a_message_and_run_finished() -> None:
+    h = Harness([Call("search_places", {"query": "ramen"}), "Search is down."])
+    h.places.fail = True
+    evs = events(await h.run())
+    result = next(e for e in evs if e["type"] == "TOOL_CALL_RESULT")
+    assert "unavailable" in result["content"]
+    assert types(evs)[-1] == "RUN_FINISHED"
+    assert "RUN_ERROR" not in types(evs)
+
+
+async def test_failed_save_gives_no_search_id_and_tells_the_model() -> None:
+    h = Harness([Call("search_places", {"query": "ramen"}), "ok"])
+
+    async def broken_save(search, places) -> None:
+        raise TimeoutError()
+
+    h.cache.save = broken_save  # type: ignore[method-assign]
+    evs = events(await h.run())
+    payload = json.loads(
+        next(e for e in evs if e["type"] == "TOOL_CALL_RESULT")["content"]
+    )
+    assert "search_id" not in payload
+    assert [p["id"] for p in payload["places"]] == ["p2", "p1"]
+    assert "show_places" in payload["note"]
+    assert types(evs)[-1] == "RUN_FINISHED"
+
+
+async def test_get_place_returns_a_card_from_an_earlier_search() -> None:
+    h = Harness(
+        [
+            Call("search_places", {"query": "ramen"}),
+            Call("get_place", {"place_id": "p1"}),
+            "ok",
+        ]
+    )
+    evs = events(await h.run())
+    results = [e for e in evs if e["type"] == "TOOL_CALL_RESULT"]
+    card = json.loads(results[1]["content"])
+    assert card["id"] == "p1" and card["name"] == "Place p1"
+
+
+async def test_get_place_unknown_id_is_a_plain_message() -> None:
+    h = Harness([Call("get_place", {"place_id": "nope"}), "ok"])
+    evs = events(await h.run())
+    result = next(e for e in evs if e["type"] == "TOOL_CALL_RESULT")
+    assert "not found" in result["content"]
+
+
+class BrokenModel(ScriptedChatModel):
+    def _next(self):
+        raise RuntimeError("Incorrect API key provided: sk-secret-123")
+
+
+async def test_model_failure_ends_with_run_error_and_no_detail(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    h = Harness([])
+    h.model = BrokenModel()
+    h.app = create_app("agent", h.services, graph=build_graph(h.model, h.search))
+    r = await h.run()
+    evs = events(r)
+    assert types(evs)[0] == "RUN_STARTED"
+    assert types(evs)[-1] == "RUN_ERROR"
+    assert "sk-secret" not in r.text
+    assert "sk-secret" not in caplog.text
+    assert "RuntimeError" in caplog.text
+
+
+async def test_another_users_thread_is_403() -> None:
+    h = Harness(["hello alice", "never for bob"])
+    assert (await h.run()).status_code == 200
+    r = await h.run(headers={"x-ms-client-principal-id": "bob-oid"})
+    assert r.status_code == 403
+    assert h.model.log["turn"] == 1
+    assert (await h.run()).status_code == 200
+
+
+def test_thread_owner_map_is_bounded_and_drops_history() -> None:
+    dropped: list[str] = []
+    owners = ThreadOwners(limit=2, on_evict=dropped.append)
+    assert owners.claim("t1", "alice")
+    assert owners.claim("t2", "alice")
+    assert owners.claim("t3", "bob")
+    assert len(owners) == 2
+    assert dropped == ["t1"]
+    assert owners.claim("t1", "bob")  # dropped id, its history is gone
+    assert not owners.claim("t3", "alice")
+
+
+async def test_evicted_thread_history_is_deleted_from_the_checkpointer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(server, "MAX_THREADS", 1)
+    h = Harness(["hi", "again"])
+    saver = h.graph.checkpointer
+    assert isinstance(saver, BaseCheckpointSaver)
+    first: RunnableConfig = {"configurable": {"thread_id": "thread-1"}}
+    await h.run()
+    assert saver.get_tuple(first) is not None
+    async with AsyncClient(
+        transport=ASGITransport(app=h.app), base_url="http://t"
+    ) as c:
+        await c.post(
+            AGENT_PATH,
+            json={**run_input(), "threadId": "thread-2"},
+            headers={**ALICE, "accept": "text/event-stream"},
+        )
+    assert saver.get_tuple(first) is None
+
+
+async def test_run_without_principal_is_401() -> None:
+    h = Harness(["never"])
+    r = await h.run(headers=None)
+    assert r.status_code == 401
+    assert h.model.log["turn"] == 0
+
+
+async def test_search_runs_as_the_signed_in_user() -> None:
+    h = Harness([Call("search_places", {"query": "ramen"}), "ok"])
+    evs = events(await h.run(headers={"x-ms-client-principal-id": "bob-oid"}))
+    payload = json.loads(
+        next(e for e in evs if e["type"] == "TOOL_CALL_RESULT")["content"]
+    )
+    assert await h.cache.get_search_by_id(payload["search_id"], "bob-oid") is not None
+    assert await h.cache.get_search_by_id(payload["search_id"], "alice-oid") is None
+
+
+@pytest.mark.parametrize("role", ["api"])
+async def test_agent_is_not_mounted_on_the_api_role(role) -> None:
+    h = Harness(["ok"])
+    app = create_app(role, h.services, graph=h.graph)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as c:
+        r = await c.post(AGENT_PATH, json=run_input(), headers=ALICE)
+    assert r.status_code == 404
