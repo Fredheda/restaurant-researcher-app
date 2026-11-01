@@ -7,11 +7,24 @@ function hash(text: string): number {
   return h;
 }
 
-/** Card photo: the photo url when there is one, else a tinted gradient from the id. */
+/** An https url made safe to put inside CSS url("..."), or null for anything else. */
+function safeImageUrl(photo: string | undefined): string | null {
+  if (!photo) return null;
+  try {
+    const url = new URL(photo);
+    if (url.protocol !== "https:") return null;
+    return url.href.replace(/["\\()]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+  } catch {
+    return null;
+  }
+}
+
+/** Card photo: an https photo url when there is one, else a tinted gradient from the id. */
 export function photoStyle(place: Pick<PlaceResult, "id" | "photo">): CSSProperties {
-  if (place.photo) {
+  const photo = safeImageUrl(place.photo);
+  if (photo) {
     return {
-      backgroundImage: `url(${place.photo})`,
+      backgroundImage: `url("${photo}")`,
       backgroundSize: "cover",
       backgroundPosition: "center",
     };

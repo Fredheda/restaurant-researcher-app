@@ -10,9 +10,19 @@ describe("photoStyle", () => {
     expect(photoStyle({ id: "a" })).not.toEqual(photoStyle({ id: "b" }));
   });
 
-  it("uses the photo url when there is one", () => {
+  it("uses an https photo url, quoted", () => {
     const style = photoStyle({ id: "a", photo: "https://example.test/p.jpg" });
-    expect(String(style.backgroundImage)).toContain("https://example.test/p.jpg");
+    expect(style.backgroundImage).toBe('url("https://example.test/p.jpg")');
+  });
+
+  it("ignores non-https and malformed urls and encodes characters that could break out of url()", () => {
+    const gradient = photoStyle({ id: "a" });
+    expect(photoStyle({ id: "a", photo: "http://example.test/p.jpg" })).toEqual(gradient);
+    expect(photoStyle({ id: "a", photo: "javascript:alert(1)" })).toEqual(gradient);
+    expect(photoStyle({ id: "a", photo: "not a url" })).toEqual(gradient);
+    const tricky = photoStyle({ id: "a", photo: 'https://example.test/a")b;c' });
+    expect(String(tricky.backgroundImage)).not.toMatch(/\)b/);
+    expect(String(tricky.backgroundImage)).toMatch(/^url\("https:\/\/example\.test\/a%29/);
   });
 });
 
