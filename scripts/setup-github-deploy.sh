@@ -17,9 +17,10 @@
 #                repository), Container Apps Contributor on the app, and
 #                Managed Identity Operator on the app's AcrPull identity
 #                (updating an app that uses it needs assign/action)
-#   3. Adds one federated credential to each identity, both trusting only the
-#      job that runs in the `production` environment (the Deploy workflow logs
-#      in twice, as build and then as deploy).
+#   3. Adds one federated credential to each identity (subject taken from the
+#      repo's OIDC settings; a credential with a stale subject is replaced),
+#      both trusting only the job that runs in the `production` environment
+#      (the Deploy workflow logs in twice, as build and then as deploy).
 #   4. Creates the `production` GitHub environment, restricted to jobs running
 #      on the main branch (a branch author cannot edit their way around it),
 #      and stores the Azure IDs the workflows read as repo SECRETS:
@@ -70,16 +71,22 @@ ensure_role() {
 }
 
 ensure_federated_credential() {
-  local identity=$1 name=$2 subject=$3
-  if az identity federated-credential show -g "$RG" --identity-name "$identity" \
-    --name "$name" -o none 2>/dev/null; then
-    echo "federated credential $identity/$name: exists"
-  else
-    az identity federated-credential create -g "$RG" --identity-name "$identity" \
-      --name "$name" --issuer "$ISSUER" --subject "$subject" \
-      --audiences api://AzureADTokenExchange -o none
-    echo "federated credential $identity/$name: created ($subject)"
+  local identity=$1 name=$2 subject=$3 current
+  if current=$(az identity federated-credential show -g "$RG" --identity-name "$identity" \
+    --name "$name" --query subject -o tsv 2>/dev/null); then
+    if [ "$current" = "$subject" ]; then
+      echo "federated credential $identity/$name: exists"
+      return
+    fi
+    # A credential with another subject can never match the job's token.
+    az identity federated-credential delete -g "$RG" --identity-name "$identity" \
+      --name "$name" --yes -o none
+    echo "federated credential $identity/$name: replaced (was $current)"
   fi
+  az identity federated-credential create -g "$RG" --identity-name "$identity" \
+    --name "$name" --issuer "$ISSUER" --subject "$subject" \
+    --audiences api://AzureADTokenExchange -o none
+  echo "federated credential $identity/$name: created ($subject)"
 }
 
 ensure_identity "$BUILD_ID"
@@ -103,10 +110,20 @@ for entry in "${IMAGES[@]}"; do
   ensure_role "$DEPLOY_PRINCIPAL" "Container Apps Contributor" "$app_id"
 done
 
-ensure_federated_credential "$BUILD_ID" github-production \
-  "repo:$GH_REPO:environment:production"
-ensure_federated_credential "$DEPLOY_ID" github-production \
-  "repo:$GH_REPO:environment:production"
+# The subject prefix of the job's OIDC token depends on the repo: new repos use
+# an immutable form that embeds the owner and repo IDs
+# (repo:<owner>@<id>/<repo>@<id>), older ones repo:<owner>/<repo>. Ask GitHub
+# which one this repo uses, or the federated credential will never match.
+SUB_PREFIX=$(gh api "repos/$GH_REPO/actions/oidc/customization/sub" --jq .sub_claim_prefix)
+if [ -z "$SUB_PREFIX" ] || [ "$SUB_PREFIX" = null ]; then
+  echo "ERROR: GitHub returned no sub_claim_prefix for $GH_REPO." >&2
+  exit 1
+fi
+SUBJECT="$SUB_PREFIX:environment:production"
+echo "OIDC subject: $SUBJECT"
+
+ensure_federated_credential "$BUILD_ID" github-production "$SUBJECT"
+ensure_federated_credential "$DEPLOY_ID" github-production "$SUBJECT"
 
 # The identities trust any job that runs in the `production` environment,
 # whatever branch it runs on, and the `main`-only check inside deploy.yml is in
