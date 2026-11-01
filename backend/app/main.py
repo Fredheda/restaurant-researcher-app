@@ -4,8 +4,13 @@ import os
 
 from fastapi import FastAPI
 
+from app.api.routes import mount_api
 from app.config import Role, role_from_env
 from app.services import Services
+
+
+def build_services() -> Services:
+    raise NotImplementedError("wired in Task 8")
 
 
 def create_app(role: Role, services: Services | None = None) -> FastAPI:
@@ -15,11 +20,10 @@ def create_app(role: Role, services: Services | None = None) -> FastAPI:
     def health() -> dict[str, str]:
         return {"status": "ok"}
 
+    if services is not None and role == "api":
+        mount_api(app, services)
+
     return app
-
-
-def build_services() -> Services:
-    return Services()
 
 
 if os.getenv("APP_ROLE"):

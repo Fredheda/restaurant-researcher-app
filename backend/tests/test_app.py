@@ -5,7 +5,7 @@ from app.config import ConfigError, Role, load_settings, role_from_env
 from app.main import create_app
 
 API_ENV = {"GOOGLE_PLACES_API_KEY": "g-key"}
-AGENT_ENV = {"OPENAI_API_KEY": "o-key"}
+AGENT_ENV = {"OPENAI_API_KEY": "o-key", "GOOGLE_PLACES_API_KEY": "g-key"}
 
 
 @pytest.mark.parametrize("role", ["api", "agent"])
@@ -27,6 +27,16 @@ def test_api_role_requires_google_key() -> None:
 def test_agent_role_requires_openai_key() -> None:
     with pytest.raises(ConfigError, match="OPENAI_API_KEY"):
         load_settings({}, "agent")
+
+
+def test_agent_role_also_requires_google_key() -> None:
+    with pytest.raises(ConfigError, match="GOOGLE_PLACES_API_KEY"):
+        load_settings({"OPENAI_API_KEY": "o-key"}, "agent")
+
+
+def test_sql_server_without_database_is_refused() -> None:
+    with pytest.raises(ConfigError, match="SQL_DATABASE"):
+        load_settings({**API_ENV, "SQL_SERVER": "s"}, "api")
 
 
 def test_settings_load_for_each_role() -> None:

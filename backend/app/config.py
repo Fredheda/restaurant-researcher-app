@@ -21,7 +21,7 @@ class ConfigError(RuntimeError):
 @dataclass(frozen=True)
 class Settings:
     role: Role
-    google_places_api_key: str | None
+    google_places_api_key: str
     openai_api_key: str | None
     openai_model: str
     sql_server: str | None
@@ -47,23 +47,28 @@ def _required(env: Mapping[str, str], name: str) -> str:
 def load_settings(env: Mapping[str, str], role: str) -> Settings:
     if role not in ROLES:
         raise ConfigError(f"APP_ROLE must be one of {', '.join(ROLES)}; got {role!r}")
-    google_key = (
-        _required(env, "GOOGLE_PLACES_API_KEY")
-        if role == "api"
-        else env.get("GOOGLE_PLACES_API_KEY")
-    )
+    # The agent runs the same search service as the api (its search_places
+    # tool), so both roles need the Places key; only the agent needs OpenAI.
     openai_key = (
         _required(env, "OPENAI_API_KEY")
         if role == "agent"
         else env.get("OPENAI_API_KEY")
     )
+    google_key = _required(env, "GOOGLE_PLACES_API_KEY")
+    sql_server = env.get("SQL_SERVER") or None
+    sql_database = env.get("SQL_DATABASE") or None
+    app_env = env.get("APP_ENV") or "production"
+    if app_env == "local" and sql_server:
+        raise ConfigError("APP_ENV=local is refused when SQL_SERVER is set")
+    if sql_server and not sql_database:
+        raise ConfigError("SQL_DATABASE is required when SQL_SERVER is set")
     return Settings(
         role=role,  # type: ignore[arg-type]
-        google_places_api_key=google_key or None,
+        google_places_api_key=google_key,
         openai_api_key=openai_key or None,
         openai_model=env.get("OPENAI_MODEL") or DEFAULT_OPENAI_MODEL,
-        sql_server=env.get("SQL_SERVER") or None,
-        sql_database=env.get("SQL_DATABASE") or None,
+        sql_server=sql_server,
+        sql_database=sql_database,
         azure_client_id=env.get("AZURE_CLIENT_ID") or None,
-        app_env=env.get("APP_ENV") or "production",
+        app_env=app_env,
     )
