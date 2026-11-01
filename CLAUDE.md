@@ -23,7 +23,7 @@ The Docker image and CI both install with npm 12.0.2 on Node 24. `ci.yml` runs o
 - Security checks live in `.github/workflows/security.yml` (jobs and schedule are in its header comment; failure handling in `docs/development.md`). `gitleaks` and `workflow-lint` block a PR; `npm-audit` is weekly only. There is no CodeQL job yet (it was left out while the repo was private; code scanning is free on public repos). Run locally: `gitleaks git . --redact`, `actionlint`, `cd frontend && npm audit --omit=dev --audit-level=high`.
 - Dependabot is configured in `.github/dependabot.yml` (monthly, grouped; npm and Node majors are done by hand, GitHub Actions majors arrive as separate PRs). Security updates are immediate and come from the repo settings, not from that file.
 - The repo is public; the deployed app is private (Entra Easy Auth). Keep emails, tenant, subscription and client IDs out of the repo, PR text and logs.
-- When the backend agent lands, extend `deployment/README.md` with a second section for that Container App.
+- `deployment/README.md` describes only the web app. The backend apps get their own section when their infra and deploy scripts land (RR-9, PR C).
 
 ## Where to look
 

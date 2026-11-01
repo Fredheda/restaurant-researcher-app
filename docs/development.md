@@ -19,7 +19,17 @@ poetry run pytest -q && poetry run ruff check . && poetry run ruff format --chec
 
 The tests are offline: Google, the FSA API, the database and the model are fakes passed to `create_app`.
 
-To run an app locally, put the variables in your shell (never in the repo). Without `SQL_SERVER` the cache and user store are in memory. `APP_ENV=local` accepts requests without the Easy Auth headers as a fixed dev user; it is refused when `SQL_SERVER` is set.
+To run an app locally, put the variables in your shell (never in the repo). `backend/app/config.py` reads them once at startup and stops with the missing name.
+
+| Variable | Needed by | Meaning |
+|---|---|---|
+| `APP_ROLE` | both | `api` or `agent` |
+| `GOOGLE_PLACES_API_KEY` | both | Places API (New) key; the agent runs the search in-process |
+| `OPENAI_API_KEY` | agent | model key |
+| `OPENAI_MODEL` | agent, optional | model name; the default is in `config.py` |
+| `SQL_SERVER`, `SQL_DATABASE` | optional | Azure SQL cache and user store; unset means in memory |
+| `AZURE_CLIENT_ID` | deployed only | managed identity for SQL; unset means `az login` |
+| `APP_ENV` | optional | `local` accepts requests without the Easy Auth headers as a fixed dev user; refused when `SQL_SERVER` is set |
 
 ```bash
 APP_ROLE=api APP_ENV=local GOOGLE_PLACES_API_KEY=... poetry run uvicorn app.main:app --port 8000
