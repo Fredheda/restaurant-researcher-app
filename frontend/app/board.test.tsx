@@ -23,14 +23,6 @@ describe("Board", () => {
     expect(screen.queryByText(/compare 2 selected/i)).not.toBeInTheDocument();
   });
 
-  it("lays cards out in one column, two from the lg breakpoint", () => {
-    render(
-      <Board places={two} selectedIds={[]} onToggleSelect={vi.fn()} onOpen={vi.fn()} onCompare={vi.fn()} />
-    );
-    const grid = screen.getByTestId(`card-${two[0].id}`).parentElement!;
-    expect(grid).toHaveClass("grid-cols-1", "lg:grid-cols-2");
-  });
-
   it("shows a compare button with >= 2 selected and calls onCompare", async () => {
     const onCompare = vi.fn();
     render(

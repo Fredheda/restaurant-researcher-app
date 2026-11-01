@@ -26,6 +26,8 @@ npm run build
 npm run e2e            # Playwright (Chromium) against the production build; run `npm run build` first
 ```
 
+The UI is built from `Board`, `Card`, `ChatPanel` (docked column, bottom sheet on phones), `DetailOverlay` with `RouteMap` (schematic TfL route), `ComparePanel` and `RatingSheet`; all run on fixtures. A 360 px browser test (`e2e/mobile.spec.ts`) guards the phone layout.
+
 The browser tests (`frontend/e2e/`) serve `.next/standalone` laid out as the Docker image does and need no network. First run: `npx playwright install chromium`. A failed run leaves a report in `frontend/playwright-report/`.
 
 `./scripts/ci-local.sh` runs all of them in CI order (plus `actionlint` when installed) and stops at the first failure.

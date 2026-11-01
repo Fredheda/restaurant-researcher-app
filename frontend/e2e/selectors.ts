@@ -12,7 +12,12 @@ export const selectCheckbox = (page: Page, placeName: string) =>
   page.getByLabel(`Select ${placeName} to compare`);
 export const compareButton = (page: Page) =>
   page.getByRole("button", { name: /^Compare \d+ selected$/ });
-export const detailOverlay = (page: Page) => page.getByTestId("detail-overlay");
+export const openChatButton = (page: Page) => page.getByRole("button", { name: "Open chat" });
+export const closeChatButton = (page: Page) => page.getByRole("button", { name: "Close chat" });
+export const routeMap = (page: Page) => page.getByRole("img", { name: /^Route from / });
+export const rateButton = (page: Page) => page.getByRole("button", { name: "Rate this visit" });
+export const ratingSheet = (page: Page) => page.getByRole("dialog", { name: /^Rate / });
+export const detailOverlay =(page: Page) => page.getByTestId("detail-overlay");
 export const comparePanel = (page: Page) => page.getByTestId("compare-panel");
 export const closeButton = (scope: Locator) => scope.getByRole("button", { name: "Close" });
 export const lastChild = (scope: Locator) => scope.locator("> :last-child");

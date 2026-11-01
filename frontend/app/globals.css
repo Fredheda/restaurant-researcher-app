@@ -21,12 +21,6 @@
   --color-hyg-fg: #2d5a2a;
   --color-good: #2d5a2a;
   --color-warn: #a8452a;
-
-  /* Old names, kept only until the rework is finished. */
-  --color-navy: var(--color-ink);
-  --color-navy-muted: var(--color-muted);
-  --color-brass: var(--color-forest);
-  --color-bg: var(--color-paper);
 }
 
 body {
