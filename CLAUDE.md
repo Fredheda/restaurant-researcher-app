@@ -9,7 +9,7 @@ Use the `caveman` skill. Talk terse at all times, with or without the skill: cha
 
 ## What this is
 
-Website for the `restaurant-researcher` skill: venue research as a card board with a chat interface. Frontend only for now (Next.js 16, React 19, Tailwind 4), serving stub chat and place data from fixtures, in the "Ink and paper" theme (design tokens in `frontend/app/globals.css`; mobile-first, works from 360 px). The `PlaceResult` type in `frontend/app/types.ts` is the contract the future agent fills.
+Website for the `restaurant-researcher` skill: venue research as a card board with a chat interface. The frontend (Next.js 16, React 19, Tailwind 4, CopilotKit v2) has a search bar, a card board and an assistant panel, in the "Ink and paper" theme (design tokens in `frontend/app/globals.css`; mobile-first, works from 360 px). It reaches the backend through `app/api/[...path]/route.ts` (`API_URL`) and the CopilotKit runtime route (`AGENT_URL`); both forward only the Easy Auth principal headers. The `PlaceResult` type in `frontend/app/types.ts` is the contract the backend fills. Browser tests run against Node fakes of both backend apps (`frontend/e2e/fake-api/`, `frontend/e2e/fake-agent/`).
 
 ## Commands
 

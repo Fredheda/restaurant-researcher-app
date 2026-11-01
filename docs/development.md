@@ -1,6 +1,6 @@
 # Development
 
-Run everything from `frontend/` unless noted. There is no backend yet, and no environment variables are needed: chat and place data come from built-in fixtures in `frontend/app/fixtures/places.ts`.
+Run everything from `frontend/` unless noted. The board starts with two fixture places (`frontend/app/fixtures/places.ts`); the search bar and the assistant panel replace them with real results from the backend.
 
 ## Prerequisites
 
@@ -14,7 +14,14 @@ npm ci
 npm run dev        # http://localhost:3000
 ```
 
-Try asking for a place by name in the chat panel (for example "Fogo de Chão", defined in `frontend/app/fixtures/places.ts`). Names are matched without accents or punctuation. Anything not in the fixtures gets a "couldn't find that place" reply.
+The web app calls two backend apps, read at runtime (not baked into the build):
+
+| Variable | Default | Used by |
+|---|---|---|
+| `API_URL` | none (the `/api/*` proxy answers 503) | `app/api/[...path]/route.ts`, the search bar and `show_places` |
+| `AGENT_URL` | `http://localhost:8001/agent/restaurant_researcher` | `app/api/copilotkit/route.ts`, the assistant panel |
+
+Without them the board and panel load, but searches fail with a visible error. Both routes forward only the three `x-ms-client-principal-*` headers that Easy Auth sets; locally, run the backend with `APP_ENV=local` so it accepts requests without them.
 
 ## Checks
 
@@ -28,7 +35,7 @@ npm run e2e            # Playwright (Chromium) against the production build; run
 
 A 360 px browser test (`e2e/mobile.spec.ts`) guards the phone layout.
 
-The browser tests (`frontend/e2e/`) serve `.next/standalone` laid out as the Docker image does and need no network. First run: `npx playwright install chromium`. A failed run leaves a report in `frontend/playwright-report/`.
+The browser tests (`frontend/e2e/`) serve `.next/standalone` laid out as the Docker image does and need no network. Two Node fakes stand in for the backend: `e2e/fake-api/server.mjs` (port 3918) and the scripted AG-UI agent `e2e/fake-agent/server.mjs` (port 3919); Playwright starts both and plays Easy Auth by sending the principal header. First run: `npx playwright install chromium`. A failed run leaves a report in `frontend/playwright-report/`.
 
 `./scripts/ci-local.sh` runs all of them in CI order (plus `actionlint` when installed) and stops at the first failure.
 
