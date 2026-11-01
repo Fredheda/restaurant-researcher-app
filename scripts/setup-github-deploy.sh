@@ -14,9 +14,11 @@
 #        deploy: AcrPush on the registry (to lock/unlock deployed tags — note
 #                that this also lets it push images; the registry is in
 #                legacy permission mode, which cannot scope pushes by
-#                repository), Container Apps Contributor on the app, and
-#                Managed Identity Operator on the app's AcrPull identity
-#                (updating an app that uses it needs assign/action)
+#                repository), Container Apps Contributor on each app that
+#                exists (an app not created yet is skipped; re-run after
+#                infra/deploy.sh adds it), and Managed Identity Operator on
+#                the app's AcrPull identity (updating an app that uses it
+#                needs assign/action)
 #   3. Adds one federated credential to each identity (subject taken from the
 #      repo's OIDC settings; a credential with a stale subject is replaced),
 #      both trusting only the job that runs in the `production` environment
@@ -104,8 +106,12 @@ ensure_role "$BUILD_PRINCIPAL" "Container Registry Tasks Contributor" "$ACR_ID"
 
 ensure_role "$DEPLOY_PRINCIPAL" "AcrPush" "$ACR_ID"
 ensure_role "$DEPLOY_PRINCIPAL" "Managed Identity Operator" "$PULL_ID_RESOURCE"
-for entry in "${IMAGES[@]}"; do
-  IFS='|' read -r _ app _ _ <<<"$entry"
+for entry in "${APPS[@]}"; do
+  IFS='|' read -r app _ <<<"$entry"
+  if ! app_exists "$app"; then
+    echo "app $app: not created yet, skipped (re-run after infra/deploy.sh)"
+    continue
+  fi
   app_id=$(az containerapp show -n "$app" -g "$RG" --query id -o tsv)
   ensure_role "$DEPLOY_PRINCIPAL" "Container Apps Contributor" "$app_id"
 done

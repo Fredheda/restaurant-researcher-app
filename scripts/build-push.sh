@@ -44,7 +44,7 @@ if [ "${#missing[@]}" -gt 0 ]; then
   git archive "$SHA" | tar -x -C "$src"
   cd "$src"
   for entry in "${missing[@]}"; do
-    IFS='|' read -r repo _ dockerfile context <<<"$entry"
+    IFS='|' read -r repo dockerfile context <<<"$entry"
     az acr build --registry "$ACR" --file "$dockerfile" \
       --image "$repo:latest" --image "$repo:$SHA" "$context"
     built+=("$repo")

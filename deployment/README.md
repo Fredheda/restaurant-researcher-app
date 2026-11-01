@@ -21,13 +21,13 @@ The app scales to zero, so the first request after idle takes about 15-40 second
 
 ## Deploy button
 
-Production changes only when the owner presses **Deploy** (Actions tab, or `gh workflow run deploy.yml --ref main`). It builds the image for the chosen commit if none exists, rolls the app, and waits until the new revision is provisioned. Leave the SHA empty for the head of `main`, or give a full 40-character SHA on `main`; rollback is the same button with an older SHA. CI never builds an image, and a merge to `main` runs nothing.
+Production changes only when the owner presses **Deploy** (Actions tab, or `gh workflow run deploy.yml --ref main`). It builds the two images (web, backend; `scripts/lib/images.sh`) for the chosen commit if they do not exist, rolls the apps that exist (backend apps first, web last; an app infra has not created yet is skipped with a logged line), and waits until each new revision is provisioned. Leave the SHA empty for the head of `main`, or give a full 40-character SHA on `main`; rollback is the same button with an older SHA. CI never builds an image, and a merge to `main` runs nothing.
 
 The federated credentials trust the OIDC subject GitHub reports for this repo (`gh api repos/Fredheda/restaurant-researcher-app/actions/oidc/customization/sub`), which for repos created recently embeds the owner and repo IDs; the setup script reads it and replaces a stale credential. Re-run the setup script if the repo is renamed or recreated.
 
-One-time setup, run by the owner: `./scripts/setup-github-deploy.sh` (two identities with federated credentials, the `production` environment restricted to `main`, four repo secrets) and `./scripts/setup-acr-purge.sh` (dry run first; `--create` adds the weekly purge of old SHA tags of this repository).
+One-time setup, run by the owner: `./scripts/setup-github-deploy.sh` (two identities with federated credentials, the `production` environment restricted to `main`, four repo secrets) and `./scripts/setup-acr-purge.sh` (dry run first; `--create` adds the weekly purge of old SHA tags of this project's repositories).
 
-Limits: the registry is in legacy permission mode, so pushes cannot be scoped per repository (the deploy identity's `AcrPush` also allows pushing, and the build identity can push registry-wide). Each Deploy of a new commit runs one billed ACR build. `redeploy.sh` rolls the app, then locks the running tag and unlocks the replaced one, so a failure in between can leave tag locks to fix by hand (the script prints the command).
+Limits: the registry is in legacy permission mode, so pushes cannot be scoped per repository (the deploy identity's `AcrPush` also allows pushing, and the build identity can push registry-wide). Each Deploy of a new commit runs two billed ACR builds, one per image, even while the backend apps do not exist yet. `redeploy.sh` rolls the apps one at a time, so a failure part-way leaves mixed versions until Deploy is pressed again; it then locks the running tags and unlocks the replaced ones, so a failure in between can leave tag locks to fix by hand (the script prints the command).
 
 ## Auth
 

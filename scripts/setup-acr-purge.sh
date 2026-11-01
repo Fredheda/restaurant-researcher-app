@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Keep the registry from growing without bound: a weekly ACR Task runs
-# `acr purge` on this project's image repository.
+# `acr purge` on this project's image repositories.
 #
 # Without arguments (the safe default) it:
-#   1. locks the SHA tag the container app runs right now, so the purge can
+#   1. locks the SHA tag each container app runs right now, so the purge can
 #      never delete an image a replica needs for its next cold start (the
 #      Deploy workflow and redeploy.sh keep this lock up to date afterwards);
 #   2. runs the purge once as a DRY RUN and prints what it would delete.
@@ -13,8 +13,8 @@
 # command minus --dry-run. Read the dry-run output first.
 #
 # What it deletes: tags that are a full 40-character git SHA, in
-# restaurant-researcher-web only, older than 30 days, but always keeping the
-# newest 10; --untagged also removes the manifests those deletions leave
+# restaurant-researcher-web and restaurant-researcher-backend only (the IMAGES
+# list), older than 30 days, but always keeping the newest 10 per repository; --untagged also removes the manifests those deletions leave
 # behind. `:latest`, other tags, other projects' repositories and locked tags
 # are never touched, and --include-locked is never used. `acr purge` is a
 # preview feature and deletes permanently.
@@ -40,11 +40,11 @@ case "${1:-}" in
   *) echo "usage: $0 [--create]" >&2; exit 2 ;;
 esac
 
-# 1. Lock what is running now.
-for entry in "${IMAGES[@]}"; do
-  IFS='|' read -r repo app _ _ <<<"$entry"
+# 1. Lock what is running now (an app that does not exist yet runs nothing).
+for entry in "${APPS[@]}"; do
+  IFS='|' read -r app repo <<<"$entry"
   current=$(az containerapp show -n "$app" -g "$RG" \
-    --query "properties.template.containers[0].image" -o tsv)
+    --query "properties.template.containers[0].image" -o tsv 2>/dev/null || true)
   tag="${current##*:}"
   if is_sha "$tag"; then
     lock_tag "$repo" "$tag"
@@ -68,7 +68,7 @@ az acr run --registry "$ACR" --cmd "$purge --dry-run" /dev/null
 
 if [ "$create" -eq 0 ]; then
   echo
-  echo "Review the list above. If it only names old SHA tags of restaurant-researcher-web,"
+  echo "Review the list above. If it only names old SHA tags of this project's repositories,"
   echo "create the weekly task with: ./scripts/setup-acr-purge.sh --create"
   exit 0
 fi
