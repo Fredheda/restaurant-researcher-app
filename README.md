@@ -11,8 +11,8 @@ A web interface for the `restaurant-researcher` skill: research a venue by chatt
 - **Search.** Type what you want ("best ramen near Soho") in the search bar and real London places fill the board in about two seconds, sorted by Google rating.
 - **Assistant.** Ask the same in the assistant panel: an AI agent searches, puts the results on the board and can open a place for you. Each answer shows the tools it used. The panel is a column on the right on wide screens and a bottom sheet on phones.
 - **Card board.** Each place appears as a photo-led card with its Google rating, the official-style food hygiene rating, price tier and opening status. The fit score, the one-line reason and the route summary arrive in later phases.
-- **Detail view.** Open a card to see the full picture: review quotes (positive and negative), the whole menu with dishes that match your taste marked, the reasoning behind the fit score and any misses, and a schematic tube-map style route from Canary Wharf. From there you can open the rating sheet to score a visit (dishes, cocktails, vibe, staff, service); saving is a demo for now.
-- **Compare.** Select two to four cards and compare taste fit, price, rating and journey time in one table.
+- **Detail view.** Open a card to see its address, opening status and hygiene rating. Later phases add review quotes, the menu with dishes that match your taste, the reasoning behind the fit score, and a schematic tube-map style route from Canary Wharf; the two example cards on first load show what that looks like. From there you can open the rating sheet to score a visit (dishes, cocktails, vibe, staff, service); saving is a demo for now.
+- **Compare.** Select two to four cards and compare price and rating in one table; taste fit and journey time fill in with the later phases.
 
 ## How it works
 

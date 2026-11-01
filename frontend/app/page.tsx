@@ -35,6 +35,7 @@ export default function Page() {
     setSelectedIds([]);
     setOpenId(null);
     setComparing(false);
+    setRating(null);
   }
 
   // Tool handlers can run with the closure of an earlier render; the ref
@@ -48,7 +49,12 @@ export default function Page() {
     showSearch,
     openPlace: (id) => {
       const found = placesRef.current.find((p) => p.id === id);
-      if (found) setOpenId(id);
+      if (found) {
+        // The details must be on top; compare and rating panels share its layer.
+        setComparing(false);
+        setRating(null);
+        setOpenId(id);
+      }
       return found?.name ?? null;
     },
   });

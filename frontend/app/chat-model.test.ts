@@ -86,6 +86,15 @@ describe("activeToolLine", () => {
     expect(activeToolLine(messages)).toBe("search_places · working");
   });
 
+  it("ignores a call left unresolved by an earlier, errored run", () => {
+    const messages: AgentMessage[] = [
+      { id: "u1", role: "user", content: "ramen" },
+      { id: "a1", role: "assistant", toolCalls: [call("c1", "search_places")] },
+      { id: "u2", role: "user", content: "try again" },
+    ];
+    expect(activeToolLine(messages)).toBeNull();
+  });
+
   it("is null once every call has a result", () => {
     const messages: AgentMessage[] = [
       { id: "a1", role: "assistant", toolCalls: [call("c1", "search_places")] },

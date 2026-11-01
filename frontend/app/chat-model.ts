@@ -86,10 +86,13 @@ export function toChatItems(messages: AgentMessage[]): ChatItem[] {
   return items;
 }
 
-/** The backend tool call still waiting for its result, as a loading line. */
+/** The backend tool call of the current turn still waiting for its result,
+ * as a loading line. Calls before the last user message belong to an
+ * earlier run (one that errored never gets a result) and are ignored. */
 export function activeToolLine(messages: AgentMessage[]): string | null {
   const byCall = results(messages);
   for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === "user") break;
     for (const c of messages[i].toolCalls ?? []) {
       if (!byCall.has(c.id) && !FRONTEND_TOOLS.has(c.function.name)) {
         return `${c.function.name} · working`;
