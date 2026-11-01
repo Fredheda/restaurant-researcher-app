@@ -1,27 +1,45 @@
 @import "tailwindcss";
 
 /*
- * "Ledger" theme — navy ink as the primary color throughout (not grey or
- * black), brass used sparingly for the one number that matters (taste fit),
- * cool white/grey surfaces (not cream). See the design-brainstorm session
- * mockups under .superpowers/brainstorm/ for the direction this came from.
+ * "Ink and paper" theme: warm grey paper, near-black ink, forest green as the
+ * single accent, white cards with hairline borders, serif venue names.
  */
 @theme {
   --font-display: var(--font-fraunces), Georgia, serif;
   --font-sans: var(--font-archivo), Arial, sans-serif;
 
-  --color-navy: #1b2430;
-  --color-navy-muted: #5b6472;
-  --color-brass: #9a6b24;
-  --color-good: #4f7a3f;
+  --color-paper: #f3f2ee;
+  --color-ink: #1c1c1a;
+  --color-forest: #1f5a3c;
+  --color-surface: #ffffff;
+  --color-hairline: #e2e0d8;
+  --color-muted: #7a7970;
+  --color-chatbg: #e9e8e2;
+  --color-star-bg: #f1ead3;
+  --color-star-fg: #6b5200;
+  --color-hyg-bg: #e1ecdd;
+  --color-hyg-fg: #2d5a2a;
+  --color-good: #2d5a2a;
   --color-warn: #a8452a;
-  --color-bg: #e4e7ec;
-  --color-surface: #fbfcfd;
-  --color-hairline: rgb(27 36 48 / 15%);
+
+  /* Old names, kept only until the rework is finished. */
+  --color-navy: var(--color-ink);
+  --color-navy-muted: var(--color-muted);
+  --color-brass: var(--color-forest);
+  --color-bg: var(--color-paper);
 }
 
 body {
-  background: var(--color-bg);
-  color: var(--color-navy);
+  background: var(--color-paper);
+  color: var(--color-ink);
   font-family: var(--font-sans);
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
 }

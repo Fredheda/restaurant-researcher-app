@@ -37,15 +37,23 @@ export default function Page() {
   const comparedPlaces = places.filter((p) => selectedIds.includes(p.id));
 
   return (
-    <div className="flex h-screen">
-      <Board
-        places={places}
-        selectedIds={selectedIds}
-        onToggleSelect={toggleSelect}
-        onOpen={setOpenId}
-        onCompare={() => setComparing(true)}
-      />
-      <ChatPanel onPlaceFound={addPlace} />
+    <div className="flex h-dvh flex-col">
+      <header className="flex items-center gap-3 border-b border-hairline px-4 py-3">
+        <span className="font-display text-xl font-semibold text-ink">Tonight</span>
+        <span className="rounded-sm bg-ink px-2 py-0.5 text-xs font-semibold text-paper">
+          from Canary Wharf
+        </span>
+      </header>
+      <div className="flex min-h-0 flex-1">
+        <Board
+          places={places}
+          selectedIds={selectedIds}
+          onToggleSelect={toggleSelect}
+          onOpen={setOpenId}
+          onCompare={() => setComparing(true)}
+        />
+        <ChatPanel onPlaceFound={addPlace} />
+      </div>
       {openPlace && <DetailOverlay place={openPlace} onClose={() => setOpenId(null)} />}
       {comparing && comparedPlaces.length >= 2 && (
         <ComparePanel places={comparedPlaces} onClose={() => setComparing(false)} />
