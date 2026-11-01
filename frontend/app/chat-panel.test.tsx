@@ -12,6 +12,22 @@ describe("ChatPanel", () => {
     vi.useRealTimers();
   });
 
+  it("starts as a closed sheet on phones; Open chat opens it and focuses the input", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(<ChatPanel onPlaceFound={vi.fn()} />);
+    const sheet = screen.getByTestId("chat-sheet");
+    expect(sheet).toHaveAttribute("data-open", "false");
+    expect(sheet).toHaveClass("max-md:invisible");
+
+    await user.click(screen.getByRole("button", { name: "Open chat" }));
+    expect(sheet).toHaveAttribute("data-open", "true");
+    expect(sheet).not.toHaveClass("max-md:invisible");
+    expect(screen.getByPlaceholderText(/ask about a place/i)).toHaveFocus();
+
+    await user.click(screen.getByRole("button", { name: "Close chat" }));
+    expect(sheet).toHaveAttribute("data-open", "false");
+  });
+
   it("plays back progress lines then calls onPlaceFound for a matching query", async () => {
     const onPlaceFound = vi.fn();
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
