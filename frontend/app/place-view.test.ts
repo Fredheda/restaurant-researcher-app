@@ -21,8 +21,7 @@ describe("photoStyle", () => {
     expect(photoStyle({ id: "a", photo: "javascript:alert(1)" })).toEqual(gradient);
     expect(photoStyle({ id: "a", photo: "not a url" })).toEqual(gradient);
     const tricky = photoStyle({ id: "a", photo: 'https://example.test/a")b;c' });
-    expect(String(tricky.backgroundImage)).not.toMatch(/\)b/);
-    expect(String(tricky.backgroundImage)).toMatch(/^url\("https:\/\/example\.test\/a%29/);
+    expect(tricky.backgroundImage).toBe('url("https://example.test/a%22%29b;c")');
   });
 });
 
