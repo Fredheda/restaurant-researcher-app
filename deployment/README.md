@@ -4,7 +4,7 @@ The app is served at restaurants.frederikheda.com, behind Entra Easy Auth. It is
 
 ## What is running
 
-Infra: the `cae-restaurant-researcher` Container Apps environment in the shared `rg-chatbot` resource group (westeurope), with no Log Analytics. It holds one app, `ca-restaurant-researcher-web` (external ingress, `minReplicas: 0` / `maxReplicas: 1`, `0.25` CPU / `0.5Gi` memory). The image lives in the shared `acrchatbotfredheda` registry and is pulled via `id-restaurant-researcher-acrpull` (passwordless, managed identity).
+Infra: the `cae-restaurant-researcher` Container Apps environment in the shared `rg-chatbot` resource group (westeurope), with no Log Analytics. It holds one app today, `ca-restaurant-researcher-web` (external ingress, `minReplicas: 0` / `maxReplicas: 1`, `0.25` CPU / `0.5Gi` memory). The backend apps `ca-restaurant-researcher-api` and `-agent` are added by infra later; the scripts skip them until they exist. Images live in the shared `acrchatbotfredheda` registry and are pulled via `id-restaurant-researcher-acrpull` (passwordless, managed identity).
 
 The app scales to zero, so the first request after idle takes about 15-40 seconds.
 
@@ -27,7 +27,7 @@ The federated credentials trust the OIDC subject GitHub reports for this repo (`
 
 One-time setup, run by the owner: `./scripts/setup-github-deploy.sh` (two identities with federated credentials, the `production` environment restricted to `main`, four repo secrets) and `./scripts/setup-acr-purge.sh` (dry run first; `--create` adds the weekly purge of old SHA tags of this project's repositories).
 
-Limits: the registry is in legacy permission mode, so pushes cannot be scoped per repository (the deploy identity's `AcrPush` also allows pushing, and the build identity can push registry-wide). Each Deploy of a new commit runs two billed ACR builds, one per image, even while the backend apps do not exist yet. `redeploy.sh` rolls the apps one at a time, so a failure part-way leaves mixed versions until Deploy is pressed again; it then locks the running tags and unlocks the replaced ones, so a failure in between can leave tag locks to fix by hand (the script prints the command).
+Limits: the registry is in legacy permission mode, so pushes cannot be scoped per repository (the deploy identity's `AcrPush` also allows pushing, and the build identity can push registry-wide). Each Deploy of a new commit runs two billed ACR builds, one per image, even while the backend apps do not exist yet. `redeploy.sh` rolls apps one at a time: a failure part-way leaves mixed versions until Deploy is pressed again, and a failure while locking tags leaves locks to fix by hand (the script prints the command).
 
 ## Auth
 

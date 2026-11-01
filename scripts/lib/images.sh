@@ -28,11 +28,20 @@ is_sha() {
   [[ "$1" =~ ^[0-9a-f]{40}$ ]]
 }
 
-# True if the container app exists. An app that infra/deploy.sh has not
-# created yet is skipped by redeploy.sh and wait-healthy.sh, so the Deploy
-# button keeps working while the backend apps are still being rolled out.
+# True if the container app exists, false if Azure says ResourceNotFound (an
+# app infra/deploy.sh has not created yet; callers skip it, so Deploy keeps
+# working while the backend apps are rolled out). Any other az failure (login,
+# network, RBAC) stops the calling script: it must never look like a missing app.
 app_exists() {
-  az containerapp show -n "$1" -g "$RG" --query name -o none >/dev/null 2>&1
+  local err
+  if err=$(az containerapp show -n "$1" -g "$RG" --query name -o none 2>&1 >/dev/null); then
+    return 0
+  fi
+  case "$err" in
+    *ResourceNotFound*|*"could not be found"*) return 1 ;;
+  esac
+  echo "ERROR: could not look up container app $1: $err" >&2
+  exit 1
 }
 
 # True if <repo>:<tag> exists in the registry.

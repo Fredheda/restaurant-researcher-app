@@ -1,8 +1,9 @@
 name: Deploy
 
-# Manual only. Builds the image for a commit on main (scripts/build-push.sh
-# skips an image that already exists, so a repeat deploy or a rollback to an
-# already-built commit builds nothing), then rolls the container app to it.
+# Manual only. Builds the images (web, backend) for a commit on main
+# (scripts/build-push.sh skips an image that exists, so a repeat deploy or a
+# rollback to an already-built commit builds nothing), then rolls the container
+# apps that exist to it.
 # CI never builds.
 # Run it from the Actions tab or: gh workflow run deploy.yml --ref main
 # Rollback is the same button with an older commit SHA.
@@ -77,7 +78,7 @@ jobs:
           CLIENT_ID: ${{ secrets.AZURE_DEPLOY_CLIENT_ID }}
         run: ./scripts/ci-azure-login.sh "$CLIENT_ID"
 
-      - name: Roll the app
+      - name: Roll the apps
         run: ./scripts/redeploy.sh "$SHA"
 
       - name: Wait for the new revision
@@ -90,9 +91,15 @@ jobs:
             echo
             git log -1 --format=%s "$SHA"
             echo
-            image=$(az containerapp show -n ca-restaurant-researcher-web -g rg-chatbot \
-              --query "properties.template.containers[0].image" -o tsv)
-            revision=$(az containerapp show -n ca-restaurant-researcher-web -g rg-chatbot \
-              --query "properties.latestRevisionName" -o tsv)
-            echo "- \`ca-restaurant-researcher-web\`: \`$image\` (revision \`$revision\`)"
+            for app in ca-restaurant-researcher-api ca-restaurant-researcher-agent ca-restaurant-researcher-web; do
+              if row=$(az containerapp show -n "$app" -g rg-chatbot \
+                --query "[properties.template.containers[0].image, properties.latestRevisionName]" \
+                -o tsv 2>/dev/null); then
+                image=$(echo "$row" | sed -n 1p)
+                revision=$(echo "$row" | sed -n 2p)
+                echo "- \`$app\`: \`$image\` (revision \`$revision\`)"
+              else
+                echo "- \`$app\`: not created yet"
+              fi
+            done
           } >> "$GITHUB_STEP_SUMMARY"

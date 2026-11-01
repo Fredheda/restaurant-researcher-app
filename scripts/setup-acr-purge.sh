@@ -14,8 +14,9 @@
 #
 # What it deletes: tags that are a full 40-character git SHA, in
 # restaurant-researcher-web and restaurant-researcher-backend only (the IMAGES
-# list), older than 30 days, but always keeping the newest 10 per repository; --untagged also removes the manifests those deletions leave
-# behind. `:latest`, other tags, other projects' repositories and locked tags
+# list), older than 30 days, but always keeping the newest 10 per repository;
+# --untagged also removes the manifests those deletions leave behind.
+# `:latest`, other tags, other projects' repositories and locked tags
 # are never touched, and --include-locked is never used. `acr purge` is a
 # preview feature and deletes permanently.
 #
@@ -43,8 +44,11 @@ esac
 # 1. Lock what is running now (an app that does not exist yet runs nothing).
 for entry in "${APPS[@]}"; do
   IFS='|' read -r app repo <<<"$entry"
-  current=$(az containerapp show -n "$app" -g "$RG" \
-    --query "properties.template.containers[0].image" -o tsv 2>/dev/null || true)
+  current=""
+  if app_exists "$app"; then
+    current=$(az containerapp show -n "$app" -g "$RG" \
+      --query "properties.template.containers[0].image" -o tsv)
+  fi
   tag="${current##*:}"
   if is_sha "$tag"; then
     lock_tag "$repo" "$tag"

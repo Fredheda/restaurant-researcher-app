@@ -8,6 +8,7 @@
 #   FAKE_IMAGES         comma list of app=image that `az containerapp show ... image` prints
 #   FAKE_PROVISIONING   comma list of revision states, one per `revision show` call
 #   FAKE_ABSENT         comma list of apps that do not exist (every containerapp call fails)
+#   FAKE_BROKEN         comma list of apps whose containerapp calls fail with another error
 #
 # Usage: ./scripts/tests/test-deploy-scripts.sh
 set -uo pipefail
@@ -23,7 +24,8 @@ echo "$*" >> "$FAKE_LOG"
 app=$(echo "$*" | sed -nE 's/.* -n ([^ ]+).*/\1/p')
 case "$*" in
   "containerapp "*)
-    case ",${FAKE_ABSENT:-}," in *",$app,"*) echo "ResourceNotFound" >&2; exit 3 ;; esac ;;
+    case ",${FAKE_ABSENT:-}," in *",$app,"*) echo "ResourceNotFound" >&2; exit 3 ;; esac
+    case ",${FAKE_BROKEN:-}," in *",$app,"*) echo "AuthorizationFailed" >&2; exit 4 ;; esac ;;
 esac
 case "$*" in
   "acr repository show"*)
@@ -180,7 +182,15 @@ check "that refusal changes nothing" not called "containerapp update"
 FAKE_ABSENT="$API_APP,$AGENT_APP,$WEB_APP" run ./scripts/redeploy.sh "$SHA"
 check "redeploy fails when no app exists" test "$rc" -ne 0
 
+# An az failure other than "not found" must never look like a missing app.
+FAKE_BROKEN="$WEB_APP" run ./scripts/redeploy.sh "$SHA"
+check "redeploy fails on an az error, not skipping the app" test "$rc" -ne 0
+check "that failure changes nothing" not called "containerapp update"
+
 # --- wait-healthy ---------------------------------------------------------
+
+FAKE_BROKEN="$WEB_APP" run ./scripts/wait-healthy.sh 5 0
+check "wait-healthy fails on an az error, not skipping the app" test "$rc" -ne 0
 
 FAKE_ABSENT="$BACKEND_ABSENT" run ./scripts/wait-healthy.sh 5 0
 check "wait-healthy skips apps that do not exist yet" test "$rc" -eq 0
