@@ -159,6 +159,19 @@ class SearchService:
             cached = [rows[pid] for pid in stored.place_ids if pid in rows]
         return Search(stored.id, stored.query, await self._cards(cached, now))
 
+    async def place(self, place_id: str) -> dict[str, Any] | None:
+        """One card by place id, from this process's recent searches or the
+        shared place cache; None when unknown. Place rows are not personal."""
+        now = self._clock()
+        for _, cached in reversed(self._recent.values()):
+            for c in cached:
+                if c.place.id == place_id:
+                    return (await self._cards([c], now))[0]
+        rows = await self._cache.get_places([place_id])
+        if place_id not in rows:
+            return None
+        return (await self._cards([rows[place_id]], now))[0]
+
     async def drain(self) -> None:
         """Wait for background saves (tests and shutdown)."""
         while self._pending:
