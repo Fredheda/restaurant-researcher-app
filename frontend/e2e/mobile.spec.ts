@@ -3,7 +3,6 @@ import {
   card,
   cardOpenButton,
   chatInput,
-  chatMessages,
   closeButton,
   closeChatButton,
   compareButton,
@@ -16,7 +15,7 @@ import {
   selectCheckbox,
 } from "./selectors";
 
-const FOGO = "fogo-de-chao-bishopsgate";
+const SABOR = "sabor-mayfair";
 const WIDTH = 360;
 const HEIGHT = 740;
 
@@ -41,16 +40,11 @@ test("phone layout: one column, chat sheet, overlay, route, compare and rating s
   await openChatButton(page).click();
   await expect(chatInput(page)).toBeVisible();
   await expect(chatInput(page)).toBeFocused();
-  await chatInput(page).fill("Fogo de Chão");
-  await chatInput(page).press("Enter");
-  await expect(chatMessages(page)).toContainText("Added Fogo de Chão to the board.", {
-    timeout: 3000,
-  });
   await closeChatButton(page).click();
   await expect(chatInput(page)).toBeHidden();
 
   // Overlay and its route map fit inside the phone viewport.
-  await cardOpenButton(page, FOGO).click();
+  await cardOpenButton(page, SABOR).click();
   const overlay = detailOverlay(page);
   await expect(overlay).toBeVisible();
   const overlayBox = (await overlay.boundingBox())!;
@@ -75,7 +69,7 @@ test("phone layout: one column, chat sheet, overlay, route, compare and rating s
 
   // Compare panel fits too.
   await selectCheckbox(page, "Sabor").check();
-  await selectCheckbox(page, "Fogo de Chão").check();
+  await selectCheckbox(page, "Padella").check();
   await compareButton(page).click();
   const compare = comparePanel(page);
   await expect(compare).toBeVisible();

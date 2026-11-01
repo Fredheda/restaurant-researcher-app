@@ -2,8 +2,6 @@ import { expect, test } from "@playwright/test";
 import {
   card,
   cardOpenButton,
-  chatInput,
-  chatMessages,
   closeButton,
   compareButton,
   comparePanel,
@@ -13,7 +11,7 @@ import {
   selectCheckbox,
 } from "./selectors";
 
-const FOGO = "fogo-de-chao-bishopsgate";
+const SABOR = "sabor-mayfair";
 
 test("production server boots and hydrates with no errors", async ({ page }) => {
   const problems: string[] = [];
@@ -43,31 +41,20 @@ test("production server boots and hydrates with no errors", async ({ page }) => 
   expect(problems).toEqual([]);
 });
 
-test("chat adds a card; detail and compare panels sit on top", async ({ page }) => {
+test("detail and compare panels sit on top", async ({ page }) => {
   await page.goto("/");
-  await expect(card(page, FOGO)).toHaveCount(0);
-  await chatInput(page).fill("Fogo de Chão");
-  await chatInput(page).press("Enter");
-
-  // The stub plays three 600 ms steps (about 1.8 s). The timeout leaves room for
-  // slow runners but fails if the delays double.
-  await expect(chatMessages(page)).toContainText("Added Fogo de Chão to the board.", {
-    timeout: 3000,
-  });
-  await expect(card(page, FOGO)).toBeVisible();
-
-  await cardOpenButton(page, FOGO).click();
+  await cardOpenButton(page, SABOR).click();
   await expect(detailOverlay(page)).toBeVisible();
   expect(await isTopmost(detailOverlay(page))).toBe(true);
   await closeButton(detailOverlay(page)).click();
   await expect(detailOverlay(page)).toBeHidden();
 
   await selectCheckbox(page, "Sabor").check();
-  await selectCheckbox(page, "Fogo de Chão").check();
+  await selectCheckbox(page, "Padella").check();
   await compareButton(page).click();
   await expect(comparePanel(page)).toBeVisible();
   await expect(comparePanel(page)).toContainText("Sabor");
-  await expect(comparePanel(page)).toContainText("Fogo de Chão");
+  await expect(comparePanel(page)).toContainText("Padella");
   expect(await isTopmost(comparePanel(page))).toBe(true);
   await closeButton(comparePanel(page)).click();
   await expect(comparePanel(page)).toBeHidden();
@@ -75,10 +62,7 @@ test("chat adds a card; detail and compare panels sit on top", async ({ page }) 
 
 test("long detail content scrolls inside the overlay", async ({ page }) => {
   await page.goto("/");
-  await chatInput(page).fill("Fogo de Chão");
-  await chatInput(page).press("Enter");
-  await expect(card(page, FOGO)).toBeVisible({ timeout: 3000 });
-  await cardOpenButton(page, FOGO).click();
+  await cardOpenButton(page, SABOR).click();
 
   const overlay = detailOverlay(page);
   await expect(overlay).toBeVisible();

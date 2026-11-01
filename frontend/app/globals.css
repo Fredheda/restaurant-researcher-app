@@ -7,6 +7,8 @@
 @theme {
   --font-display: var(--font-fraunces), Georgia, serif;
   --font-sans: var(--font-archivo), Arial, sans-serif;
+  /* Prompt lines, tool lines and the chat input in the assistant panel. */
+  --font-mono: var(--font-jetbrains), ui-monospace, Menlo, monospace;
 
   --color-paper: #f3f2ee;
   --color-ink: #1c1c1a;
@@ -15,6 +17,8 @@
   --color-hairline: #e2e0d8;
   --color-muted: #7a7970;
   --color-chatbg: #e9e8e2;
+  /* Text on the ink header of the assistant panel. */
+  --color-ink-muted: #cfcdc4;
   --color-star-bg: #f1ead3;
   --color-star-fg: #6b5200;
   --color-hyg-bg: #e1ecdd;

@@ -16,6 +16,13 @@ export async function searchPlaces(query: string): Promise<SearchResult> {
   return (await res.json()) as SearchResult;
 }
 
+/** A search the agent ran, read back by id (owner-only on the api). */
+export async function fetchSearch(id: string): Promise<SearchResult> {
+  const res = await fetch(`/api/searches/${encodeURIComponent(id)}`);
+  if (!res.ok) throw new Error(`search failed: ${res.status}`);
+  return (await res.json()) as SearchResult;
+}
+
 export function SearchBar({
   onResults,
   searchFn = searchPlaces,

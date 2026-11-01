@@ -1,62 +1,54 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import { runStubResearch } from "./stub-responder";
-import type { PlaceResult } from "./types";
+import { useEffect, useRef, useState } from "react";
+import { UseAgentUpdate, useAgent, useCopilotKit } from "@copilotkit/react-core/v2";
+import { AGENT_ID } from "./agent-id";
+import { activeToolLine, toChatItems, type AgentMessage } from "./chat-model";
+import { ChatView } from "./chat-view";
 
-type Message = { id: string; role: "user" | "status"; text: string };
-
-let messageCounter = 0;
-function nextId() {
-  messageCounter += 1;
-  return `msg-${messageCounter}`;
-}
+const RUN_ERROR = "The assistant hit an error. Try again.";
 
 /**
- * Docked column from the md breakpoint; below it a bottom sheet that stays
+ * The assistant panel, driven by the CopilotKit agent. Docked column from
+ * the md breakpoint; below it a bottom sheet with a drag handle that stays
  * invisible (not focusable, not in the accessibility tree) until opened.
  */
-export function ChatPanel({
-  onPlaceFound,
-}: {
-  onPlaceFound: (place: PlaceResult) => void;
-}) {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [busy, setBusy] = useState(false);
+export function ChatPanel() {
+  // Until the runtime connects, useAgent hands out a provisional agent that
+  // is swapped for the real one; a message sent to it would vanish from the
+  // panel, so input waits for isReady.
+  const { agent, isReady } = useAgent({
+    agentId: AGENT_ID,
+    updates: [UseAgentUpdate.OnMessagesChanged, UseAgentUpdate.OnRunStatusChanged],
+  });
+  const { copilotkit } = useCopilotKit();
   const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Focus on open, and again once a disabled (connecting) input comes alive.
   useEffect(() => {
-    if (open) inputRef.current?.focus();
-  }, [open]);
+    if (open && isReady) inputRef.current?.focus();
+  }, [open, isReady]);
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    const query = input.trim();
-    if (!query || busy) return;
-    setInput("");
-    setBusy(true);
-    setMessages((m) => [...m, { id: nextId(), role: "user", text: query }]);
+  // A RUN_ERROR from the agent ends the run without throwing in every
+  // client version, so listen for it as well as catching.
+  useEffect(() => {
+    const sub = agent.subscribe({ onRunErrorEvent: () => setError(RUN_ERROR) });
+    return () => sub.unsubscribe();
+  }, [agent]);
 
-    const found = await runStubResearch(query, (line) => {
-      setMessages((m) => [...m, { id: nextId(), role: "status", text: line }]);
-    });
-
-    if (found) {
-      onPlaceFound(found);
-      setMessages((m) => [
-        ...m,
-        { id: nextId(), role: "status", text: `Added ${found.name} to the board.` },
-      ]);
-    } else {
-      setMessages((m) => [
-        ...m,
-        { id: nextId(), role: "status", text: "Couldn't find that place in this demo's fixtures." },
-      ]);
+  async function send(text: string) {
+    setError(null);
+    agent.addMessage({ id: crypto.randomUUID(), role: "user", content: text });
+    try {
+      await copilotkit.runAgent({ agent });
+    } catch {
+      setError(RUN_ERROR);
     }
-    setBusy(false);
   }
+
+  const messages = agent.messages as AgentMessage[];
 
   return (
     <>
@@ -72,44 +64,26 @@ export function ChatPanel({
       <aside
         data-testid="chat-sheet"
         data-open={open ? "true" : "false"}
-        className={`fixed inset-x-0 bottom-0 z-40 flex h-[60dvh] flex-col border-t border-hairline bg-chatbg p-3 transition-transform md:static md:z-auto md:h-auto md:w-80 md:flex-shrink-0 md:translate-y-0 md:border-t-0 md:border-l md:visible ${
+        aria-label="Assistant"
+        className={`fixed inset-x-0 bottom-0 z-40 flex h-[65dvh] flex-col rounded-t-2xl border-t border-hairline bg-surface shadow-lg transition-transform md:static md:z-auto md:h-auto md:w-80 md:flex-shrink-0 md:translate-y-0 md:rounded-none md:border-t-0 md:border-l md:shadow-none md:visible ${
           open ? "translate-y-0" : "max-md:invisible max-md:translate-y-full"
         }`}
       >
-        <div className="mb-2 flex items-center justify-between">
-          <span className="font-display text-lg text-ink">Restaurant Researcher</span>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            className="rounded-sm px-2 py-0.5 text-sm text-muted md:hidden"
-          >
-            Close chat
-          </button>
-        </div>
-        <div data-testid="chat-messages" className="flex-1 space-y-2 overflow-y-auto text-sm">
-          {messages.map((m) => (
-            <div
-              key={m.id}
-              className={
-                m.role === "user"
-                  ? "ml-auto w-fit max-w-[85%] rounded-lg bg-surface px-2.5 py-1.5 text-ink"
-                  : "w-fit max-w-[90%] rounded-lg bg-ink px-2.5 py-1.5 text-paper"
-              }
-            >
-              {m.role === "status" ? `• ${m.text}` : m.text}
-            </div>
-          ))}
-        </div>
-        <form onSubmit={handleSubmit} className="mt-2">
-          <input
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            disabled={busy}
-            placeholder="Ask about a place…"
-            className="w-full rounded-lg border border-hairline bg-surface px-3 py-2 text-sm text-ink"
-          />
-        </form>
+        <div
+          data-testid="chat-handle"
+          aria-hidden="true"
+          className="absolute top-1.5 left-1/2 h-1 w-10 -translate-x-1/2 rounded-full bg-ink-muted/60 md:hidden"
+        />
+        <ChatView
+          items={toChatItems(messages)}
+          ready={isReady}
+          running={agent.isRunning}
+          activeTool={activeToolLine(messages)}
+          error={error}
+          onSend={send}
+          onClose={() => setOpen(false)}
+          inputRef={inputRef}
+        />
       </aside>
     </>
   );

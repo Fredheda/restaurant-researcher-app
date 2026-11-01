@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PlaceResult } from "./types";
 import { Board } from "./board";
 import { ChatPanel } from "./chat-panel";
@@ -8,12 +8,13 @@ import { DetailOverlay } from "./detail-overlay";
 import { ComparePanel } from "./compare-panel";
 import { RatingSheet } from "./rating-sheet";
 import { SearchBar } from "./search-bar";
+import { useBoardTools } from "./board-tools";
 import { PLACES } from "./fixtures/places";
 import { visitDraftFor } from "./fixtures/visit-drafts";
 
-// Seeds the board so it isn't blank on first load. Picked to show range
-// (a low taste-fit score with misses, and an alreadyRated place) without
-// overlapping the places the demo chat flow adds by name.
+// Seeds the board so it isn't blank on first load: two fully researched
+// examples (a low taste-fit score with misses, and an alreadyRated place).
+// The first search replaces them.
 const SEED_IDS = ["sabor-mayfair", "padella-shoreditch"];
 
 function seedPlaces(): PlaceResult[] {
@@ -28,10 +29,6 @@ export default function Page() {
   // The rating sheet is a demo until visits are stored (phase 3): Save closes it.
   const [rating, setRating] = useState<{ placeId: string; today: string } | null>(null);
 
-  function addPlace(place: PlaceResult) {
-    setPlaces((prev) => (prev.some((p) => p.id === place.id) ? prev : [...prev, place]));
-  }
-
   /** A search replaces the board; selection and panels refer to old cards. */
   function showSearch(found: PlaceResult[]) {
     setPlaces(found);
@@ -39,6 +36,22 @@ export default function Page() {
     setOpenId(null);
     setComparing(false);
   }
+
+  // Tool handlers can run with the closure of an earlier render; the ref
+  // always holds the board as it is now.
+  const placesRef = useRef(places);
+  useEffect(() => {
+    placesRef.current = places;
+  }, [places]);
+
+  useBoardTools({
+    showSearch,
+    openPlace: (id) => {
+      const found = placesRef.current.find((p) => p.id === id);
+      if (found) setOpenId(id);
+      return found?.name ?? null;
+    },
+  });
 
   function toggleSelect(id: string) {
     setSelectedIds((prev) =>
@@ -69,7 +82,7 @@ export default function Page() {
           onOpen={setOpenId}
           onCompare={() => setComparing(true)}
         />
-        <ChatPanel onPlaceFound={addPlace} />
+        <ChatPanel />
       </div>
       {openPlace && (
         <DetailOverlay

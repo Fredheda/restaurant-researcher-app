@@ -22,7 +22,14 @@ cpSync("public", join(dir, "public"), { recursive: true });
 const server = spawn("node", ["server.js"], {
   cwd: dir,
   stdio: "inherit",
-  env: { ...process.env, PORT: port, HOSTNAME: "127.0.0.1", NODE_ENV: "production" },
+  env: {
+    ...process.env,
+    PORT: port,
+    HOSTNAME: "127.0.0.1",
+    NODE_ENV: "production",
+    // As in the Docker image.
+    COPILOTKIT_TELEMETRY_DISABLED: "true",
+  },
 });
 
 function stop() {

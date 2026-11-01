@@ -2,6 +2,7 @@ import { defineConfig } from "@playwright/test";
 
 const port = process.env.E2E_PORT ?? "3917";
 const apiPort = process.env.E2E_API_PORT ?? "3918";
+const agentPort = process.env.E2E_AGENT_PORT ?? "3919";
 const ci = !!process.env.CI;
 
 const server = {
@@ -25,9 +26,13 @@ export default defineConfig({
     baseURL: `http://127.0.0.1:${port}`,
     trace: "retain-on-failure",
     viewport: { width: 1280, height: 720 },
-    // Stands in for Easy Auth, which sets this header on every request it
-    // lets into the web app.
-    extraHTTPHeaders: { "x-ms-client-principal-id": "e2e-user" },
+    // Stand in for Easy Auth, which sets the principal header on every
+    // request it lets into the web app, and with a token store also the
+    // x-ms-token-* headers, which must not reach the agent.
+    extraHTTPHeaders: {
+      "x-ms-client-principal-id": "e2e-user",
+      "x-ms-token-aad-access-token": "e2e-secret-token",
+    },
   },
   projects: [{ name: "chromium", use: { browserName: "chromium" } }],
   webServer: [
@@ -39,9 +44,19 @@ export default defineConfig({
     },
     {
       ...server,
+      command: "node e2e/fake-agent/server.mjs",
+      url: `http://127.0.0.1:${agentPort}/health`,
+      env: { E2E_AGENT_PORT: agentPort },
+    },
+    {
+      ...server,
       command: "node e2e/serve.mjs",
       url: `http://127.0.0.1:${port}`,
-      env: { E2E_PORT: port, API_URL: `http://127.0.0.1:${apiPort}` },
+      env: {
+        E2E_PORT: port,
+        API_URL: `http://127.0.0.1:${apiPort}`,
+        AGENT_URL: `http://127.0.0.1:${agentPort}/agent/restaurant_researcher`,
+      },
     },
   ],
 });

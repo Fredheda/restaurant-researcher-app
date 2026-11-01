@@ -7,6 +7,13 @@ export const searchBox = (page: Page) => page.getByRole("searchbox", { name: "Se
 export const searchError = (page: Page) => page.getByRole("search").getByRole("alert");
 export const chatInput = (page: Page) => page.getByPlaceholder("Ask about a place…");
 export const chatMessages = (page: Page) => page.getByTestId("chat-messages");
+export const chatSheet = (page: Page) => page.getByTestId("chat-sheet");
+export const chatHandle = (page: Page) => page.getByTestId("chat-handle");
+export const sendButton = (page: Page) => page.getByRole("button", { name: "Send" });
+export const chatAnswer = (page: Page, text: string | RegExp) =>
+  chatMessages(page).locator("[data-kind=assistant]").filter({ hasText: text });
+export const chatPrompt = (page: Page, text: string) =>
+  chatMessages(page).locator("[data-kind=user]").filter({ hasText: text });
 export const card = (page: Page, id: string) => page.getByTestId(`card-${id}`);
 export const cardOpenButton = (page: Page, id: string) =>
   card(page, id).getByRole("button").first();

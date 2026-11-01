@@ -1,6 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import Page from "./page";
+
+// The page shell only; the agent wiring is covered by the browser tests.
+vi.mock("@copilotkit/react-core/v2", () => ({
+  UseAgentUpdate: {},
+  useFrontendTool: () => undefined,
+  useCopilotKit: () => ({ copilotkit: {} }),
+  useAgent: () => ({
+    agent: { messages: [], isRunning: false, subscribe: () => ({ unsubscribe() {} }) },
+  }),
+}));
 
 describe("Page shell", () => {
   it("shows the wordmark, the start badge and the two seeded cards", () => {
