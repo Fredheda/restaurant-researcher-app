@@ -20,9 +20,9 @@ The Docker image and CI both install with npm 12.0.2 on Node 24. `ci.yml` runs o
 ## Gotchas
 
 - `.github/workflows/claude-review.yml` posts a comment-only AI review on every push to a ready (non-draft) PR (security first, plus a documentation check); the owner can request one by commenting `@claude`.
-- Security checks live in `.github/workflows/security.yml` (jobs and schedule are in its header comment; failure handling in `docs/development.md`). `gitleaks` and `workflow-lint` block a PR; `npm-audit` is weekly only. There is no CodeQL job: code scanning is unavailable on a private repo on the free plan. Run locally: `gitleaks git . --redact`, `actionlint`, `cd frontend && npm audit --omit=dev --audit-level=high`.
+- Security checks live in `.github/workflows/security.yml` (jobs and schedule are in its header comment; failure handling in `docs/development.md`). `gitleaks` and `workflow-lint` block a PR; `npm-audit` is weekly only. There is no CodeQL job yet (it was left out while the repo was private; code scanning is free on public repos). Run locally: `gitleaks git . --redact`, `actionlint`, `cd frontend && npm audit --omit=dev --audit-level=high`.
 - Dependabot is configured in `.github/dependabot.yml` (monthly, grouped; npm and Node majors are done by hand, GitHub Actions majors arrive as separate PRs). Security updates are immediate and come from the repo settings, not from that file.
-- The repo is public to read, but the deployed app is private (Entra Easy Auth). No license is granted, all rights reserved, so there is no `LICENSE` file; do not add one. Keep emails, tenant, subscription and client IDs out of the repo, PR text and logs.
+- The repo is public; the deployed app is private (Entra Easy Auth). Keep emails, tenant, subscription and client IDs out of the repo, PR text and logs.
 - When the backend agent lands, extend `deployment/README.md` with a second section for that Container App.
 
 ## Where to look
