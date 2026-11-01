@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { layoutRoute } from "./route-layout";
 import { PLACES } from "./fixtures/places";
-import type { PlaceResult } from "./types";
+import type { Journey } from "./types";
 
-type Legs = PlaceResult["journey"]["legs"];
+type Legs = Journey["legs"];
 
 const BOX = { width: 320, height: 160 };
 const fogo = PLACES.find((p) => p.id === "fogo-de-chao-bishopsgate")!;

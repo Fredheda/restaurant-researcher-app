@@ -1,6 +1,6 @@
-import type { PlaceResult } from "./types";
+import type { Journey } from "./types";
 
-type Legs = PlaceResult["journey"]["legs"];
+type Legs = Journey["legs"];
 
 export type Point = { x: number; y: number };
 

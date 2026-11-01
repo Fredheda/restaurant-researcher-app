@@ -1,7 +1,5 @@
 import { layoutRoute } from "./route-layout";
-import type { PlaceResult } from "./types";
-
-type Journey = PlaceResult["journey"];
+import type { Journey } from "./types";
 
 const INK = "#1c1c1a";
 const MUTED = "#7a7970";

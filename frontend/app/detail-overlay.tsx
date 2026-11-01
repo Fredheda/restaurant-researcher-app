@@ -1,4 +1,5 @@
 import type { PlaceResult } from "./types";
+import { HygieneBadge } from "./hygiene-badge";
 import { RouteMap } from "./route-map";
 
 export function DetailOverlay({
@@ -24,7 +25,7 @@ export function DetailOverlay({
           <div className="min-w-0">
             <h2 className="font-display text-2xl font-semibold break-words text-ink">{place.name}</h2>
             <p className="text-sm text-muted">
-              {place.type} · {place.neighbourhood} · {place.priceTier}
+              {[place.type, place.neighbourhood, place.priceTier].filter(Boolean).join(" · ")}
             </p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="text-muted">
@@ -35,12 +36,23 @@ export function DetailOverlay({
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <section className="min-w-0 rounded-lg border border-hairline p-4">
             <div className="text-xs text-muted">Overview</div>
-            <div className="mt-1">
-              <span className="font-display text-ink italic">{place.overview.rating.toFixed(1)}</span>
-              <span className="ml-2 text-muted">{place.overview.reviewCount} reviews</span>
-            </div>
+            {place.overview.rating !== null && (
+              <div className="mt-1">
+                <span className="font-display text-ink italic">
+                  {place.overview.rating.toFixed(1)}
+                </span>
+                {place.overview.reviewCount !== null && (
+                  <span className="ml-2 text-muted">{place.overview.reviewCount} reviews</span>
+                )}
+              </div>
+            )}
             <p className="mt-2 text-ink">{place.overview.address}</p>
-            <p className="text-good">{place.overview.openStatus}</p>
+            {place.overview.openStatus && <p className="text-good">{place.overview.openStatus}</p>}
+            {place.hygieneRating !== undefined && (
+              <div className="mt-3">
+                <HygieneBadge rating={place.hygieneRating} size="lg" />
+              </div>
+            )}
             {place.overview.reviewQuotes.length > 0 && (
               <ul className="mt-3 space-y-1 border-t border-hairline pt-2 text-xs text-muted italic">
                 {place.overview.reviewQuotes.map((q) => (
@@ -52,6 +64,7 @@ export function DetailOverlay({
             )}
           </section>
 
+          {place.menu && (
           <section className="min-w-0 rounded-lg border border-hairline p-4">
             <div className="text-xs text-muted">Menu</div>
             <ul className="mt-2 divide-y divide-hairline text-sm">
@@ -66,7 +79,9 @@ export function DetailOverlay({
               ))}
             </ul>
           </section>
+          )}
 
+          {place.tasteFit && (
           <section className="min-w-0 rounded-lg border border-hairline p-4">
             <div className="text-xs text-muted">Taste fit</div>
             <div className="mt-1 font-display text-3xl text-forest">
@@ -83,15 +98,18 @@ export function DetailOverlay({
               </ul>
             )}
           </section>
+          )}
         </div>
 
-        <div className="mt-4 rounded-lg border border-hairline p-3">
-          <div className="mb-1 flex items-baseline justify-between text-xs text-muted">
-            <span>Route from Canary Wharf</span>
-            <span className="font-display text-xl text-ink">{place.journey.totalMinutes} min</span>
+        {place.journey && (
+          <div className="mt-4 rounded-lg border border-hairline p-3">
+            <div className="mb-1 flex items-baseline justify-between text-xs text-muted">
+              <span>Route from Canary Wharf</span>
+              <span className="font-display text-xl text-ink">{place.journey.totalMinutes} min</span>
+            </div>
+            <RouteMap journey={place.journey} from="Canary Wharf" to={place.name} />
           </div>
-          <RouteMap journey={place.journey} from="Canary Wharf" to={place.name} />
-        </div>
+        )}
 
         <div className="mt-4 flex justify-end">
           <button
