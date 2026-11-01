@@ -54,7 +54,9 @@ export default function Page() {
         />
         <ChatPanel onPlaceFound={addPlace} />
       </div>
-      {openPlace && <DetailOverlay place={openPlace} onClose={() => setOpenId(null)} />}
+      {openPlace && (
+        <DetailOverlay place={openPlace} onClose={() => setOpenId(null)} onRate={() => {}} />
+      )}
       {comparing && comparedPlaces.length >= 2 && (
         <ComparePanel places={comparedPlaces} onClose={() => setComparing(false)} />
       )}
