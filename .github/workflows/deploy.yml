@@ -6,6 +6,7 @@ name: Deploy
 # apps that exist to it.
 # CI never builds.
 # Run it from the Actions tab or: gh workflow run deploy.yml --ref main
+# The run waits in the production environment until the repo owner approves it.
 # Rollback is the same button with an older commit SHA.
 on:
   workflow_dispatch:

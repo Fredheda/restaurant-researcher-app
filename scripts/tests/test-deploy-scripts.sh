@@ -59,6 +59,19 @@ esac
 exit 0
 EOF
 chmod +x "$tmp/bin/az"
+# Fake `gh`: records every call in $FAKE_LOG.gh; the OIDC subject prefix and a
+# user lookup get fixed answers; a body given on stdin lands in $FAKE_LOG.gh-body.
+cat >"$tmp/bin/gh" <<'EOF'
+#!/usr/bin/env bash
+echo "$*" >> "$FAKE_LOG.gh"
+case "$*" in
+  *"customization/sub"*) echo "repo:Fredheda@1/restaurant-researcher-app@2"; exit 0 ;;
+  *" users/"*) echo 77542239; exit 0 ;;
+  *"--input -"*) cat >> "$FAKE_LOG.gh-body"; exit 0 ;;
+esac
+exit 0
+EOF
+chmod +x "$tmp/bin/gh"
 
 SHA=$(git rev-parse HEAD)
 OLD=1111111111111111111111111111111111111111
@@ -77,12 +90,14 @@ fail() { echo "FAIL  $1"; failures=$((failures + 1)); }
 run() {
   LOG="$tmp/log.$RANDOM"
   : >"$LOG"
-  rm -f "$LOG.build-dir" "$LOG.n"
+  rm -f "$LOG.build-dir" "$LOG.n" "$LOG.gh" "$LOG.gh-body"
   PATH="$tmp/bin:$PATH" FAKE_LOG="$LOG" "$@" >/dev/null 2>&1
   rc=$?
 }
 called() { grep -q -- "$1" "$LOG"; }
 count() { grep -c -- "$1" "$LOG"; }
+gh_called() { grep -q -- "$1" "$LOG.gh"; }
+gh_body_has() { grep -q -- "$1" "$LOG.gh-body"; }
 check() { # check <name> <command...>
   local name=$1
   shift
@@ -207,6 +222,14 @@ check "wait-healthy fails on Failed" test "$rc" -eq 1
 
 FAKE_PROVISIONING=Provisioning run ./scripts/wait-healthy.sh 1 0
 check "wait-healthy times out" test "$rc" -eq 1
+
+run ./scripts/setup-github-deploy.sh
+check "setup exits 0 against the fakes" test "$rc" -eq 0
+check "setup restricts production to main" gh_body_has '"custom_branch_policies": true'
+check "setup adds the main branch policy" gh_called "deployment-branch-policies -f name=main -f type=branch"
+check "setup makes the repo owner the required reviewer" gh_body_has '"reviewers": \[{"type": "User", "id": 77542239}\]'
+check "setup lets the owner approve his own run" gh_body_has '"prevent_self_review": false'
+check "setup lets no admin bypass the gate" gh_body_has '"can_admins_bypass": false'
 
 [ "$failures" -eq 0 ] && echo "deploy script tests: all passed" || echo "deploy script tests: $failures failed"
 exit "$failures"
