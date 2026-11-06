@@ -1,10 +1,15 @@
 import type { PlaceResult } from "./types";
 
+const NONE = "–";
+
 const ROWS: { label: string; value: (p: PlaceResult) => string }[] = [
-  { label: "Taste fit", value: (p) => `${p.tasteFit.score.toFixed(1)}/10` },
-  { label: "Price", value: (p) => p.priceTier },
-  { label: "Rating", value: (p) => `${p.overview.rating.toFixed(1)} ★` },
-  { label: "Journey", value: (p) => `${p.journey.totalMinutes} min` },
+  { label: "Taste fit", value: (p) => (p.tasteFit ? `${p.tasteFit.score.toFixed(1)}/10` : NONE) },
+  { label: "Price", value: (p) => p.priceTier ?? NONE },
+  {
+    label: "Rating",
+    value: (p) => (p.overview.rating === null ? NONE : `${p.overview.rating.toFixed(1)} ★`),
+  },
+  { label: "Journey", value: (p) => (p.journey ? `${p.journey.totalMinutes} min` : NONE) },
 ];
 
 export function ComparePanel({
