@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Build the frontend image natively on linux/amd64 with ACR Tasks and push
-# :latest + :<git-sha>. Auth: the caller's live `az login` session (or the
-# GitHub build identity) — no stored credentials.
+# Build the images (web, backend) natively on linux/amd64 with ACR Tasks and
+# push :latest + :<git-sha> for each. Auth: the caller's live `az login`
+# session (or the GitHub build identity) — no stored credentials.
 #
 # An image that already exists for the commit is skipped, so building a commit
 # twice (a second Deploy of the same SHA, or ship.sh after a Deploy) is a
 # no-op, and rolling back to an already-built commit builds nothing.
 #
-# The image is built from `git archive <sha>` in a temporary directory, never
+# Each image is built from `git archive <sha>` in a temporary directory, never
 # from the working tree, so the :<git-sha> tag is honest for any commit,
 # including one that is not checked out.
 #
@@ -44,7 +44,7 @@ if [ "${#missing[@]}" -gt 0 ]; then
   git archive "$SHA" | tar -x -C "$src"
   cd "$src"
   for entry in "${missing[@]}"; do
-    IFS='|' read -r repo _ dockerfile context <<<"$entry"
+    IFS='|' read -r repo dockerfile context <<<"$entry"
     az acr build --registry "$ACR" --file "$dockerfile" \
       --image "$repo:latest" --image "$repo:$SHA" "$context"
     built+=("$repo")

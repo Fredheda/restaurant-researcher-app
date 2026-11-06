@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Smoke check after a rollout: wait until the latest revision of the app
+# Smoke check after a rollout: wait until the latest revision of every app
 # reports provisioningState Provisioned.
 # Usage: ./scripts/wait-healthy.sh [timeout_seconds=300] [interval_seconds=5]
 #
@@ -17,8 +17,12 @@ timeout="${1:-300}"
 interval="${2:-5}"
 deadline=$((SECONDS + timeout))
 
-for entry in "${IMAGES[@]}"; do
-  IFS='|' read -r _ app _ _ <<<"$entry"
+for entry in "${APPS[@]}"; do
+  IFS='|' read -r app _ <<<"$entry"
+  if ! app_exists "$app"; then
+    echo "$app: not created yet, skipped"
+    continue
+  fi
   revision=$(az containerapp show -n "$app" -g "$RG" \
     --query properties.latestRevisionName -o tsv)
   while true; do
