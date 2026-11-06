@@ -33,6 +33,31 @@ describe("Card", () => {
     expect(screen.queryByText(/Hygiene/)).not.toBeInTheDocument();
   });
 
+  it("renders a search result with no fit, route, menu, rating or price", () => {
+    const bare = {
+      ...fogo,
+      priceTier: null,
+      whyThis: undefined,
+      tasteFit: undefined,
+      journey: undefined,
+      menu: undefined,
+      overview: { ...fogo.overview, rating: null, reviewCount: null, openStatus: "" },
+    };
+    render(<Card place={bare} selected={false} onToggleSelect={vi.fn()} onOpen={vi.fn()} />);
+    expect(screen.getByText("Fogo de Chão")).toBeInTheDocument();
+    expect(screen.queryByText(/^Fit /)).not.toBeInTheDocument();
+    expect(screen.queryByText(/min$/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/★/)).not.toBeInTheDocument();
+    expect(screen.queryByText("££££")).not.toBeInTheDocument();
+    expect(screen.queryByText(/null|undefined|NaN/)).not.toBeInTheDocument();
+  });
+
+  it("shows the rating without a count when the count is unknown", () => {
+    const place = { ...fogo, overview: { ...fogo.overview, reviewCount: null } };
+    render(<Card place={place} selected={false} onToggleSelect={vi.fn()} onOpen={vi.fn()} />);
+    expect(screen.getByText("★ 4.2")).toBeInTheDocument();
+  });
+
   it("draws shimmer lines instead of the why-line and fit while enriching", () => {
     render(
       <Card place={{ ...fogo, enriching: true }} selected={false} onToggleSelect={vi.fn()} onOpen={vi.fn()} />

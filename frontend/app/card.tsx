@@ -1,5 +1,5 @@
 import type { PlaceResult } from "./types";
-import { compactCount, hygieneLabel, photoStyle, routeSummary } from "./place-view";
+import { hygieneLabel, photoStyle, ratingBadge, routeSummary } from "./place-view";
 
 function Shimmer({ width }: { width: string }) {
   return (
@@ -28,6 +28,8 @@ export function Card({
   onOpen: (id: string) => void;
 }) {
   const hygiene = hygieneLabel(place.hygieneRating);
+  const stars = ratingBadge(place.overview);
+  const route = routeSummary(place.journey);
 
   return (
     <div
@@ -54,16 +56,20 @@ export function Card({
           {place.name}
         </span>
         <span className="flex flex-wrap items-center gap-1.5 text-xs">
-          <span className="rounded-sm bg-star-bg px-1.5 py-0.5 font-semibold text-star-fg">
-            {`★ ${place.overview.rating.toFixed(1)} · ${compactCount(place.overview.reviewCount)}`}
-          </span>
+          {stars && (
+            <span className="rounded-sm bg-star-bg px-1.5 py-0.5 font-semibold text-star-fg">
+              {stars}
+            </span>
+          )}
           {hygiene && (
             <span className="rounded-sm bg-hyg-bg px-1.5 py-0.5 font-semibold text-hyg-fg">
               {hygiene}
             </span>
           )}
-          <span className="text-muted">{place.priceTier}</span>
-          <span className="text-muted">{place.overview.openStatus}</span>
+          {place.priceTier && <span className="text-muted">{place.priceTier}</span>}
+          {place.overview.openStatus && (
+            <span className="text-muted">{place.overview.openStatus}</span>
+          )}
         </span>
 
         {place.enriching ? (
@@ -75,16 +81,20 @@ export function Card({
           place.whyThis && <span className="text-xs text-ink italic">{place.whyThis}</span>
         )}
 
-        <span className="mt-auto flex items-baseline justify-between gap-2 pt-1 text-xs text-muted">
-          <span className="min-w-0 break-words">{routeSummary(place.journey)}</span>
-          {place.enriching ? (
-            <span className="flex-shrink-0">reading menu…</span>
-          ) : (
-            <span className="flex-shrink-0 font-bold text-forest">
-              {`Fit ${place.tasteFit.score.toFixed(1)}`}
-            </span>
-          )}
-        </span>
+        {(route || place.enriching || place.tasteFit) && (
+          <span className="mt-auto flex items-baseline justify-between gap-2 pt-1 text-xs text-muted">
+            <span className="min-w-0 break-words">{route}</span>
+            {place.enriching ? (
+              <span className="flex-shrink-0">reading menu…</span>
+            ) : (
+              place.tasteFit && (
+                <span className="flex-shrink-0 font-bold text-forest">
+                  {`Fit ${place.tasteFit.score.toFixed(1)}`}
+                </span>
+              )
+            )}
+          </span>
+        )}
       </button>
     </div>
   );

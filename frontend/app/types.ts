@@ -13,7 +13,8 @@ export type PlaceResult = {
   name: string;
   type: string;
   neighbourhood: string;
-  priceTier: "£" | "££" | "£££" | "££££";
+  /** null when Google has no price level for the place. */
+  priceTier: "£" | "££" | "£££" | "££££" | null;
 
   /** Photo url; the card draws a placeholder gradient when absent. */
   photo?: string;
@@ -25,37 +26,43 @@ export type PlaceResult = {
   enriching?: boolean;
 
   overview: {
-    rating: number;
-    reviewCount: number;
+    /** Google rating and review count; null when Google has none. */
+    rating: number | null;
+    reviewCount: number | null;
     address: string;
+    /** "Open now", "Closed now", or "" when not known. */
     openStatus: string;
     reviewQuotes: { text: string; sentiment: Sentiment }[];
   };
 
-  menu: {
+  // The three below are absent until later phases fill them (deep
+  // research, taste learning, routes); cards and the overlay hide them.
+  menu?: {
     items: { name: string; price?: string; matchesTaste: boolean }[];
   };
 
-  tasteFit: {
+  tasteFit?: {
     score: number;
     reasoning: string;
     misses: string[];
   };
 
-  journey: {
-    totalMinutes: number;
-    legs: {
-      mode: TravelMode;
-      line: string;
-      lineColor: string;
-      from: string;
-      to: string;
-      durationMinutes: number;
-    }[];
-  };
+  journey?: Journey;
 
   alreadyRated?: {
     avgRating: number;
     notes: string;
   };
+};
+
+export type Journey = {
+  totalMinutes: number;
+  legs: {
+    mode: TravelMode;
+    line: string;
+    lineColor: string;
+    from: string;
+    to: string;
+    durationMinutes: number;
+  }[];
 };

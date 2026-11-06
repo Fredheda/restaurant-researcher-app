@@ -27,7 +27,7 @@ flowchart LR
     S --> F[(Demo place fixtures)]
 ```
 
-The app is a single Next.js page. The chat sends a query to a stub responder, which plays a short sequence of progress messages and then looks the place up by name (accent-insensitive) in a set of fixtures. A matching place is added to the board. Selecting cards enables the compare view. A typed `PlaceResult` model (overview, menu, taste fit, journey, optional existing rating) is the contract the real research agent will fill later.
+The app is a single Next.js page. The chat sends a query to a stub responder, which plays a short sequence of progress messages and then looks the place up by name (accent-insensitive) in a set of fixtures. A matching place is added to the board. Selecting cards enables the compare view. A typed `PlaceResult` model (overview; optional menu, taste fit, journey and existing rating, which cards hide when absent) is the contract the real research agent will fill later.
 
 The app runs on Azure Container Apps behind Microsoft Entra Easy Auth: only approved users can reach it, and it scales to zero when idle.
 

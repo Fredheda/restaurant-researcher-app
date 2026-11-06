@@ -1,6 +1,10 @@
 import type { PlaceResult } from "../types";
 
-export const PLACES: PlaceResult[] = [
+/** A fully researched place: every later-phase field filled. */
+export type FullPlace = PlaceResult &
+  Required<Pick<PlaceResult, "menu" | "tasteFit" | "journey">>;
+
+export const PLACES: FullPlace[] = [
   {
     id: "fogo-de-chao-bishopsgate",
     hygieneRating: 5,
