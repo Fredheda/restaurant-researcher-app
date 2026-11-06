@@ -32,9 +32,9 @@ cd backend && poetry install && poetry run pytest -q && poetry run ruff check . 
 
 ## Environment variables
 
-Backend only; the frontend reads none. Meaning and defaults: `docs/development.md`.
+Backend only; the frontend reads none. Which role needs which, meaning and defaults: `docs/development.md`.
 
-- `APP_ROLE` (`api` or `agent`), `GOOGLE_PLACES_API_KEY` (both roles), `OPENAI_API_KEY` and `OPENAI_MODEL` (agent), `SQL_SERVER` and `SQL_DATABASE` (optional, in memory when unset), `AZURE_CLIENT_ID` (deployed only), `APP_ENV` (`local` skips the Easy Auth headers; refused with `SQL_SERVER`).
+- `APP_ROLE`, `GOOGLE_PLACES_API_KEY`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `SQL_SERVER`, `SQL_DATABASE`, `AZURE_CLIENT_ID`, `APP_ENV`.
 
 ## Deployment
 
