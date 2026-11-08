@@ -69,5 +69,5 @@ jobs:
         with:
           node-version: 24
       # Match frontend/Dockerfile.
-      - run: npm install -g npm@12.0.2
+      - run: npm install -g npm@12.2.2
       - run: npm audit --omit=dev --audit-level=high
