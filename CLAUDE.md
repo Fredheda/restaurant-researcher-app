@@ -1,12 +1,12 @@
 # CLAUDE.md
 
-Repo-specific facts for Claude Code. The workspace `CLAUDE.md` (`../CLAUDE.md`) owns everything else: response style, git and worktrees, ways of working (tickets and tiers, production deploys, PR size, test first, the PR loop), tooling, Jira, specs and plans. Keep this file true.
+Repo facts only. Everything else (style, git, worktrees, tickets, deploy rules, PR loop, tooling, Jira, plans): workspace `../CLAUDE.md`.
 
-PR titles and descriptions never mention Claude Code. `./scripts/ci-local.sh` is this repo's local CI script: green before `gh pr ready`.
+PR titles and descriptions never mention Claude Code. `./scripts/ci-local.sh` is the local CI script: green before `gh pr ready`.
 
 ## What this is
 
-Website for the `restaurant-researcher` skill: venue research as a card board with a chat interface. Public repo; the deployed app (restaurants.frederikheda.com) is private behind Entra Easy Auth. Keep emails, tenant, subscription and client IDs out of the repo, PR text and logs.
+Website for the `restaurant-researcher` skill: venue research as a card board with a chat interface. Public repo; the deployed app (restaurants.frederikheda.com) is private behind Entra Easy Auth. Keep emails, tenant, subscription and client IDs out of repo, PR text and logs.
 
 - `frontend/` (Next.js 16, React 19, Tailwind 4): still serves stub chat and fixture places (`app/fixtures/places.ts`); "Ink and paper" theme, tokens in `app/globals.css`; mobile-first from 360 px. `app/types.ts` (`PlaceResult`) is the contract the backend fills.
 - `backend/` (FastAPI, Poetry, Python 3.13): one codebase and image for two apps, picked by `APP_ROLE`. `api` serves `/api/searches` (Google Places plus FSA hygiene ratings, cached) and its events stream; `agent` serves a LangGraph agent over AG-UI at `/agent/restaurant_researcher`. Both serve `/health`. `app.main:create_app(role, services, graph)` is the factory; `app_from_env()` builds it from the environment. Startup calls no remote service. Not wired to the frontend yet.
@@ -28,6 +28,7 @@ cd backend && poetry install && poetry run pytest -q && poetry run ruff check . 
 
 - Node 24 with npm 12.0.2, in CI and in `frontend/Dockerfile`. `next-env.d.ts` and `*.tsbuildinfo` are generated and gitignored.
 - CI (`.github/workflows/ci.yml`) runs on pull requests only, never on a push to `main`. A draft PR runs the light jobs (`changes`, `backend`, `checks`: deploy-script tests, vitest, lint, `tsc`); `build` (production build plus the browser tests) and the AI review run once the PR is ready. A docs-only PR (`*.md` or `docs/`) skips all three. CI never builds an image.
+- **Merging:** the owner merges, except Dependabot patch or minor bumps that touch nothing under `.github/`, and docs-only PRs (only `.md` files, `CLAUDE.md` included, and `docs/`; never `.claude/` or workflows). The coordinator merges those after review, once every CI check passed and, for docs PRs, the automated GitHub review passed. Rules: workspace `CLAUDE.md`, Git.
 - Tests: backend tests are offline, every external client is a fake passed to `create_app`. Browser tests (`frontend/e2e/`) run against the production build with no network; every locator lives in `frontend/e2e/selectors.ts` and ESLint rejects `.locator()` in specs. A new test must catch a bug no other test catches.
 
 ## Environment variables
@@ -38,7 +39,7 @@ Backend only; the frontend reads none. Which role needs which, meaning and defau
 
 ## Deployment
 
-Code deploys with the manual **Deploy** workflow (`main` only, a full SHA or the head of `main`, rollback = an older SHA); `./scripts/ship.sh` is the laptop fallback and refuses a dirty tree; `./infra/deploy.sh` deploys infra (laptop only). A merge runs nothing. Every run waits in GitHub for the owner's approval (`production` requires him as reviewer). How to run, by what changed: `deployment/README.md`.
+Code deploys with the manual **Deploy** workflow (`main` only; full SHA or head of `main`; rollback = older SHA). `./scripts/ship.sh` is the laptop fallback and refuses a dirty tree. `./infra/deploy.sh` deploys infra (laptop only). A merge runs nothing. Every run waits for approval from the `production` reviewer. How to run: `deployment/README.md`.
 
 ## Security, Dependabot, review
 
@@ -48,6 +49,6 @@ Code deploys with the manual **Deploy** workflow (`main` only, a full SHA or the
 
 ## Gotchas
 
-- The backend apps are not deployed yet: the deploy scripts know them and skip them until infra creates them. `deployment/README.md` describes the web app; the backend apps get their own section when their infra lands.
-- The agent id `restaurant_researcher` (`AGENT_NAME` in `backend/app/agent/server.py`) must be spelled the same in the web app's CopilotKit runtime route and provider `agent` prop once the frontend is wired; neither exists yet.
-- `backend/sql/` schema scripts are idempotent and applied by hand by the owner; the apps never run DDL.
+- The backend apps are not deployed yet: the deploy scripts skip them until infra creates them. `deployment/README.md` covers the web app only.
+- The agent id `restaurant_researcher` (`AGENT_NAME` in `backend/app/agent/server.py`) must match the web app's CopilotKit runtime route and provider `agent` prop (neither exists yet).
+- `backend/sql/` scripts are idempotent and applied by hand; the apps never run DDL.
