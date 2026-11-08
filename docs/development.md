@@ -4,7 +4,7 @@ Run the frontend from `frontend/` and the backend from `backend/`. The frontend 
 
 ## Prerequisites
 
-- Node 24 with npm 12.0.2. The Docker image and CI both use these versions (`npm install -g npm@12.0.2`).
+- Node 24 with npm 12.2.2. The Docker image and CI both use these versions (`npm install -g npm@12.2.2`).
 - For the backend: Python 3.13 and Poetry 2.
 
 ## Backend
