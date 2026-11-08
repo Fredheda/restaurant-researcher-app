@@ -51,4 +51,4 @@ Code deploys with the manual **Deploy** workflow (`main` only; full SHA or head 
 
 - The backend apps are not deployed yet: the deploy scripts skip them until infra creates them. `deployment/README.md` covers the web app only.
 - The agent id `restaurant_researcher` (`AGENT_NAME` in `backend/app/agent/server.py`) must match the web app's CopilotKit runtime route and provider `agent` prop (neither exists yet).
-- `backend/sql/` scripts are idempotent and applied by hand; the apps never run DDL.
+- `backend/sql/` scripts are idempotent and applied by hand by the owner; agents and the apps never run DDL.
