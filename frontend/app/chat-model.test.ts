@@ -104,7 +104,7 @@ describe("toChatItems", () => {
     ]);
   });
 
-  it("keeps tool lines for a tool call that has no result yet and no answer yet", () => {
+  it("drops pending tool lines when no answer has arrived yet", () => {
     const messages: AgentMessage[] = [
       { id: "u1", role: "user", content: "ramen" },
       { id: "a1", role: "assistant", toolCalls: [call("c1", "search_places")] },
