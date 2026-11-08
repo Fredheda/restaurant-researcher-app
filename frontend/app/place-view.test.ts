@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compactCount, hygieneLabel, photoStyle, routeSummary } from "./place-view";
+import { compactCount, hygieneLabel, photoStyle, ratingBadge, routeSummary } from "./place-view";
 import { PLACES } from "./fixtures/places";
 
 const fogo = PLACES.find((p) => p.id === "fogo-de-chao-bishopsgate")!;
@@ -30,6 +30,10 @@ describe("routeSummary", () => {
     expect(routeSummary(fogo.journey)).toBe("Elizabeth line → Liverpool Street · 22 min");
   });
 
+  it("is null when the place has no journey yet", () => {
+    expect(routeSummary(undefined)).toBeNull();
+  });
+
   it("handles an all-walking route and no route", () => {
     const walk = { mode: "walking" as const, line: "Walk", lineColor: "#999999", from: "A", to: "B", durationMinutes: 5 };
     expect(routeSummary({ totalMinutes: 5, legs: [walk] })).toBe("Walk · 5 min");
@@ -42,6 +46,14 @@ describe("compactCount", () => {
     expect(compactCount(126)).toBe("126");
     expect(compactCount(2140)).toBe("2.1k");
     expect(compactCount(10000)).toBe("10k");
+  });
+});
+
+describe("ratingBadge", () => {
+  it("shows rating and count, rating alone, or nothing", () => {
+    expect(ratingBadge({ rating: 4.2, reviewCount: 2140 })).toBe("★ 4.2 · 2.1k");
+    expect(ratingBadge({ rating: 4.2, reviewCount: null })).toBe("★ 4.2");
+    expect(ratingBadge({ rating: null, reviewCount: 10 })).toBeNull();
   });
 });
 
