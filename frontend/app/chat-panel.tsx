@@ -94,6 +94,7 @@ export function ChatPanel({
         <ChatView
           items={toItems(messages)}
           running={busy}
+          // The stub reports no tool in flight and no run errors; the agent wiring fills both.
           activeTool={null}
           error={null}
           onSend={send}
