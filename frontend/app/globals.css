@@ -7,6 +7,7 @@
 @theme {
   --font-display: var(--font-fraunces), Georgia, serif;
   --font-sans: var(--font-archivo), Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
 
   --color-paper: #f3f2ee;
   --color-ink: #1c1c1a;
@@ -14,6 +15,7 @@
   --color-surface: #ffffff;
   --color-hairline: #e2e0d8;
   --color-muted: #7a7970;
+  --color-ink-muted: #cfcdc4;
   --color-chatbg: #e9e8e2;
   --color-star-bg: #f1ead3;
   --color-star-fg: #6b5200;
