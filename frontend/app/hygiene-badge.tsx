@@ -16,7 +16,7 @@ export function HygieneBadge({
   const large = size === "lg";
   const label =
     rating === null ? "Food hygiene rating: not rated" : `Food hygiene rating ${rating} out of 5`;
-  const word = rating === null;
+  const notRated = rating === null;
 
   return (
     <span
@@ -50,7 +50,7 @@ export function HygieneBadge({
       <span
         aria-hidden="true"
         className={`font-display font-bold leading-none ${
-          word ? (large ? "text-sm" : "text-[11px]") : large ? "text-3xl" : "text-lg"
+          notRated ? (large ? "text-sm" : "text-[11px]") : large ? "text-3xl" : "text-lg"
         }`}
       >
         {rating === null ? "Not rated" : rating}

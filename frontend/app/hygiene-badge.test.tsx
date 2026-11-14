@@ -34,6 +34,12 @@ describe("HygieneBadge", () => {
     expect(screen.getByTestId("hygiene-step-5")).toHaveAttribute("data-current", "false");
   });
 
+  it("shows Not rated without a scale in the large size", () => {
+    render(<HygieneBadge rating={null} size="lg" />);
+    expect(screen.getByRole("img", { name: "Food hygiene rating: not rated" })).toHaveTextContent("Not rated");
+    expect(screen.queryAllByTestId(/^hygiene-step-/)).toHaveLength(0);
+  });
+
   it("has no scale in the small size", () => {
     render(<HygieneBadge rating={3} />);
     expect(screen.queryAllByTestId(/^hygiene-step-/)).toHaveLength(0);
