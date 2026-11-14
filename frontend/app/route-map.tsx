@@ -1,39 +1,47 @@
-import { layoutRoute } from "./route-layout";
+import { LINE_H, layoutRoute, routeLabels } from "./route-layout";
+import type { RouteLabel } from "./route-layout";
 import type { Journey } from "./types";
 
 const INK = "#1c1c1a";
 const MUTED = "#7a7970";
-const BOX = { width: 320, height: 160 };
+const BOX = { width: 320, height: 120 };
 
-function clampX(x: number): number {
-  return Math.min(BOX.width - 40, Math.max(40, x));
+function Text({ label, fill }: { label: RouteLabel; fill: string }) {
+  return (
+    <text x={label.x} y={label.y} fontSize="9" textAnchor="middle" fill={fill}>
+      {label.lines.map((line, i) => (
+        <tspan key={i} x={label.x} dy={i === 0 ? 0 : LINE_H}>
+          {line}
+        </tspan>
+      ))}
+    </text>
+  );
 }
 
-/** Schematic route (tube-map style), drawn from the journey legs. */
+/** Journey strip, origin on the left to destination on the right, drawn from the legs. */
 export function RouteMap({ journey, from, to }: { journey: Journey; from: string; to: string }) {
-  const { points } = layoutRoute(journey.legs, BOX);
   const legs = journey.legs;
+  const { points } = layoutRoute(legs, BOX);
+  const labels = routeLabels(legs, points, from, to, BOX);
   const summary = legs
     .map((leg) => `${leg.mode === "walking" ? "walk" : leg.line} ${leg.durationMinutes}`)
     .join(", ");
-  const label =
+  const description =
     `Route from ${from} to ${to}, ${journey.totalMinutes} minutes` + (summary ? `: ${summary}` : "");
 
   return (
     <svg
       role="img"
-      aria-label={label}
+      aria-label={description}
       viewBox={`0 0 ${BOX.width} ${BOX.height}`}
       className="h-auto w-full max-w-full"
     >
       {legs.map((leg, i) => {
-        const a = points[i];
-        const b = points[i + 1];
         const walking = leg.mode === "walking";
         return (
           <polyline
             key={`seg-${i}`}
-            points={`${a.x},${a.y} ${b.x},${b.y}`}
+            points={`${points[i].x},${points[i].y} ${points[i + 1].x},${points[i + 1].y}`}
             fill="none"
             stroke={walking ? INK : leg.lineColor}
             strokeWidth={walking ? 3 : 7}
@@ -44,67 +52,43 @@ export function RouteMap({ journey, from, to }: { journey: Journey; from: string
         );
       })}
 
-      {legs.map((leg, i) => {
-        const a = points[i];
-        const b = points[i + 1];
-        return (
-          <text
-            key={`leg-${i}`}
-            x={clampX((a.x + b.x) / 2)}
-            y={(a.y + b.y) / 2 - 10}
-            fontSize="9"
-            textAnchor="middle"
-            fill={MUTED}
-          >
-            {leg.mode === "walking" ? `walk ${leg.durationMinutes}` : `${leg.line} · ${leg.durationMinutes} min`}
-          </text>
-        );
-      })}
-
       {points.map((p, i) => {
-        const isStart = i === 0;
-        const isEnd = i === points.length - 1 && points.length > 1;
-        if (isStart || isEnd) return null;
-        const prev = legs[i - 1];
-        const next = legs[i];
-        const transit = [prev, next].find((leg) => leg.mode !== "walking");
-        return (
-          <g key={`stop-${i}`}>
-            <circle
-              cx={p.x}
-              cy={p.y}
-              r={transit ? 5 : 3}
-              fill={transit ? "#ffffff" : INK}
-              stroke={transit ? transit.lineColor : INK}
-              strokeWidth={transit ? 3 : 0}
-            />
-            <text x={clampX(p.x)} y={p.y + 16} fontSize="9" textAnchor="middle" fill={MUTED}>
-              {prev.to}
-            </text>
-          </g>
+        const end = i === 0 || i === points.length - 1;
+        const transit = [legs[i - 1], legs[i]].find((leg) => leg && leg.mode !== "walking");
+        return end ? (
+          <circle key={`stop-${i}`} cx={p.x} cy={p.y} r={6} fill={INK} />
+        ) : (
+          <circle
+            key={`stop-${i}`}
+            cx={p.x}
+            cy={p.y}
+            r={transit ? 5 : 3}
+            fill={transit ? "#ffffff" : INK}
+            stroke={transit ? transit.lineColor : INK}
+            strokeWidth={transit ? 3 : 0}
+          />
         );
       })}
 
-      <g>
-        <circle cx={points[0].x} cy={points[0].y} r={6} fill={INK} />
-        <text x={clampX(points[0].x)} y={points[0].y + 20} fontSize="10" textAnchor="middle" fill={INK}>
-          {from}
-        </text>
-      </g>
-      {points.length > 1 && (
-        <g>
-          <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r={6} fill={INK} />
-          <text
-            x={clampX(points[points.length - 1].x)}
-            y={points[points.length - 1].y - 12}
-            fontSize="10"
-            textAnchor="middle"
-            fill={INK}
-          >
-            {to}
-          </text>
+      {labels.legs.map((label, i) => (
+        <Text key={`leg-${i}`} label={label} fill={MUTED} />
+      ))}
+
+      {labels.stops.map((label) => (
+        <g key={`name-${label.index}`}>
+          {label.row === 1 && (
+            <line
+              x1={points[label.index].x}
+              y1={points[label.index].y + 8}
+              x2={points[label.index].x}
+              y2={label.box.top - 1}
+              stroke={MUTED}
+              strokeWidth={0.5}
+            />
+          )}
+          <Text label={label} fill={label.index === 0 || label.index === points.length - 1 ? INK : MUTED} />
         </g>
-      )}
+      ))}
     </svg>
   );
 }

@@ -10,7 +10,7 @@ A web interface for the `restaurant-researcher` skill: research a venue by chatt
 
 - **Research by chat.** Ask about a restaurant in the chat. The app shows progress steps (address and hours, ratings, journey) and adds the place to the board. The chat is a column on the right on wide screens and a bottom sheet on phones.
 - **Card board.** Each place appears as a photo-led card with its Google rating, hygiene rating, price tier, opening status, a one-line reason it suits you, the route summary and a fit score out of 10. A card still being researched shows placeholder lines.
-- **Detail view.** Open a card to see the full picture: review quotes (positive and negative), the whole menu with dishes that match your taste marked, the reasoning behind the fit score and any misses, and a schematic tube-map style route from Canary Wharf. From there you can open the rating sheet to score a visit (dishes, cocktails, vibe, staff, service); saving is a demo for now.
+- **Detail view.** Open a card to see the full picture: review quotes (positive and negative), the whole menu with dishes that match your taste marked, the reasoning behind the fit score and any misses, and the journey from Canary Wharf as a left-to-right strip with each leg's line and minutes. From there you can open the rating sheet to score a visit (dishes, cocktails, vibe, staff, service); saving is a demo for now.
 - **Compare.** Select two to four cards and compare taste fit, price, rating and journey time in one table.
 
 The current phase is frontend only. Chat replies and place data come from built-in demo fixtures, so the UI can be built and tested before the research agent is connected.
