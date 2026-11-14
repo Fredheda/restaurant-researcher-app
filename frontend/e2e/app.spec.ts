@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import {
   card,
   cardOpenButton,
+  chatChips,
   chatInput,
   chatMessages,
   closeButton,
@@ -46,6 +47,8 @@ test("production server boots and hydrates with no errors", async ({ page }) => 
 test("chat adds a card; detail and compare panels sit on top", async ({ page }) => {
   await page.goto("/");
   await expect(card(page, FOGO)).toHaveCount(0);
+  await expect(chatMessages(page)).toContainText("What can I do?");
+  await expect(chatChips(page)).toHaveCount(3);
   await chatInput(page).fill("Fogo de Chão");
   await chatInput(page).press("Enter");
 

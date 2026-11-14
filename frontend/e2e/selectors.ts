@@ -5,6 +5,9 @@ import type { Locator, Page } from "@playwright/test";
 
 export const chatInput = (page: Page) => page.getByPlaceholder("Ask about a place…");
 export const chatMessages = (page: Page) => page.getByTestId("chat-messages");
+export const chatSheet = (page: Page) => page.getByTestId("chat-sheet");
+export const chatHandle = (page: Page) => page.getByTestId("chat-handle");
+export const chatChips = (page: Page) => page.getByRole("button", { name: /^Ask: / });
 export const card = (page: Page, id: string) => page.getByTestId(`card-${id}`);
 export const cardOpenButton = (page: Page, id: string) =>
   card(page, id).getByRole("button").first();
