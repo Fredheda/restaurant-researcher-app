@@ -30,4 +30,31 @@ describe("ChatPanel", () => {
     expect(onPlaceFound).toHaveBeenCalledTimes(1);
     expect(onPlaceFound.mock.calls[0][0].id).toBe("dishoom-canary-wharf");
   });
+
+  it("shows the thinking line and blocks a second send while the stub runs", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(<ChatPanel onPlaceFound={vi.fn()} />);
+
+    await user.type(screen.getByPlaceholderText(/ask about a place/i), "Dishoom{Enter}");
+
+    expect(screen.getByRole("status")).toHaveTextContent("thinking");
+    await user.type(screen.getByPlaceholderText(/ask about a place/i), "x");
+    expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
+    expect(await screen.findByText(/added dishoom to the board/i, {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("runs a suggestion chip like a typed prompt and says when nothing matched", async () => {
+    const onPlaceFound = vi.fn();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(<ChatPanel onPlaceFound={onPlaceFound} />);
+
+    await user.click(screen.getByRole("button", { name: "Ask: best ramen near Soho" }));
+
+    expect(screen.getByText("best ramen near Soho")).toBeInTheDocument();
+    expect(
+      await screen.findByText(/couldn't find that place/i, {}, { timeout: 3000 })
+    ).toBeInTheDocument();
+    expect(onPlaceFound).not.toHaveBeenCalled();
+  });
 });
