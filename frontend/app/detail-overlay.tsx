@@ -1,4 +1,5 @@
 import type { PlaceResult } from "./types";
+import { HygieneBadge } from "./hygiene-badge";
 import { RouteMap } from "./route-map";
 
 export function DetailOverlay({
@@ -47,6 +48,11 @@ export function DetailOverlay({
             )}
             <p className="mt-2 text-ink">{place.overview.address}</p>
             {place.overview.openStatus && <p className="text-good">{place.overview.openStatus}</p>}
+            {place.hygieneRating !== undefined && (
+              <div className="mt-3">
+                <HygieneBadge rating={place.hygieneRating} size="lg" />
+              </div>
+            )}
             {place.overview.reviewQuotes.length > 0 && (
               <ul className="mt-3 space-y-1 border-t border-hairline pt-2 text-xs text-muted italic">
                 {place.overview.reviewQuotes.map((q) => (
