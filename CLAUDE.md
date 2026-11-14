@@ -8,7 +8,7 @@ PR titles and descriptions never mention Claude Code. `./scripts/ci-local.sh` is
 
 Website for the `restaurant-researcher` skill: venue research as a card board with a chat interface. Public repo; the deployed app (restaurants.frederikheda.com) is private behind Entra Easy Auth. Keep emails, tenant, subscription and client IDs out of repo, PR text and logs.
 
-- `frontend/` (Next.js 16, React 19, Tailwind 4): still serves stub chat and fixture places (`app/fixtures/places.ts`); "Ink and paper" theme, tokens in `app/globals.css`; mobile-first from 360 px. `app/types.ts` (`PlaceResult`) is the contract the backend fills.
+- `frontend/` (Next.js 16, React 19, Tailwind 4): still serves stub chat and fixture places (`app/fixtures/places.ts`); "Ink and paper" theme, tokens in `app/globals.css`; mobile-first from 360 px. `app/types.ts` (`PlaceResult`) is the contract the backend fills. `app/api/[...path]/route.ts` is the narrow `/api/*` proxy to the api app (Easy Auth principal headers only); nothing calls it yet.
 - `backend/` (FastAPI, Poetry, Python 3.13): one codebase and image for two apps, picked by `APP_ROLE`. `api` serves `/api/searches` (Google Places plus FSA hygiene ratings, cached) and its events stream; `agent` serves a LangGraph agent over AG-UI at `/agent/restaurant_researcher`. Both serve `/health`. `app.main:create_app(role, services, graph)` is the factory; `app_from_env()` builds it from the environment. Startup calls no remote service. Not wired to the frontend yet.
 - `infra/` (Bicep), `scripts/` (build, deploy, access), `deployment/` (how to run it).
 
@@ -33,9 +33,9 @@ cd backend && poetry install && poetry run pytest -q && poetry run ruff check . 
 
 ## Environment variables
 
-Backend only; the frontend reads none. Which role needs which, meaning and defaults: `docs/development.md`.
+Which role needs which, meaning and defaults: `docs/development.md`. The frontend reads two, at runtime: `API_URL` (internal https origin of the api app, a path is ignored; unset means `/api/*` answers 503) and, for local runs only, `ALLOW_ANONYMOUS`.
 
-- `APP_ROLE`, `GOOGLE_PLACES_API_KEY`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `SQL_SERVER`, `SQL_DATABASE`, `AZURE_CLIENT_ID`, `APP_ENV`.
+- Backend: `APP_ROLE`, `GOOGLE_PLACES_API_KEY`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `SQL_SERVER`, `SQL_DATABASE`, `AZURE_CLIENT_ID`, `APP_ENV`. Frontend: `API_URL`, `ALLOW_ANONYMOUS`.
 
 ## Deployment
 

@@ -1,6 +1,6 @@
 # Development
 
-Run the frontend from `frontend/` and the backend from `backend/`. The frontend does not call the backend yet: chat and place data come from built-in fixtures in `frontend/app/fixtures/places.ts`, and it needs no environment variables.
+Run the frontend from `frontend/` and the backend from `backend/`. The frontend does not call the backend yet: chat and place data come from built-in fixtures in `frontend/app/fixtures/places.ts`, and it needs no environment variables to run. Its `/api/*` proxy (`frontend/app/api/[...path]/route.ts`) is in place but nothing calls it yet; see the web variables below.
 
 ## Prerequisites
 
@@ -30,6 +30,13 @@ To run an app locally, put the variables in your shell (never in the repo). `bac
 | `SQL_SERVER`, `SQL_DATABASE` | optional | Azure SQL cache and user store; unset means in memory |
 | `AZURE_CLIENT_ID` | deployed only | managed identity for SQL; unset means `az login` |
 | `APP_ENV` | optional | `local` accepts requests without the Easy Auth headers as a fixed dev user; refused when `SQL_SERVER` is set |
+
+Web app (read at runtime by `frontend/app/api/[...path]/route.ts`):
+
+| Variable | Meaning |
+|---|---|
+| `API_URL` | origin of the api app (a path in it is ignored), for example `http://127.0.0.1:8000`. Unset or not http(s): `/api/*` answers 503. Deployed: the api's internal **https** address (with `allowInsecure` off, an `http://` call inside the environment is answered with a redirect, which the proxy turns into 502), set by the backend rollout |
+| `ALLOW_ANONYMOUS` | `true` lets a request without Easy Auth headers through, only when `API_URL` is loopback (local runs, where there is no Easy Auth). Never set it in a deployed app: it has no effect there, and the proxy answers 401 without a signed-in principal |
 
 ```bash
 APP_ROLE=api APP_ENV=local GOOGLE_PLACES_API_KEY=... poetry run uvicorn app.main:app --port 8000

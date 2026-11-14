@@ -9,16 +9,17 @@
  *   backslash, `@` or percent escape can steer it elsewhere;
  * - only GET and POST are exported (everything else gets 405);
  * - upstream is never followed through a redirect;
- * - requests without a usable Easy Auth principal are refused, and only the
- *   principal headers, `content-type` and `accept` are sent on;
+ * - requests without a usable Easy Auth principal are refused (a local run
+ *   with `ALLOW_ANONYMOUS` sends none), and only the principal headers,
+ *   `content-type` and `accept` are sent on;
  * - a POST must be same-origin (when the browser says where it comes from)
  *   and JSON, and its body is counted in bytes while it is read;
- * - only `content-type` comes back, with `nosniff` and, for anything but an
- *   event stream, `no-store` (answers are per person);
+ * - of the upstream headers only `content-type` comes back, with `nosniff`,
+ *   `no-store` (answers are per person) or, for an event stream, the headers
+ *   that keep it unbuffered;
  * - failures answer with fixed text, never an exception message.
  *
- * `app/api/copilotkit/route.ts` (a later change) is more specific and wins
- * over this catch-all.
+ * A more specific route under `app/api/` wins over this catch-all.
  */
 import { principalHeaders } from "../principal";
 
@@ -106,7 +107,9 @@ async function proxy(request: Request, { params }: Context): Promise<Response> {
 
   const { path } = await params;
   if (!safeSegments(path)) return fail(404, "not found");
+  // `API_URL` contributes its origin only; a path in it is ignored.
   const target = new URL(`/api/${path.join("/")}`, base);
+  // Second guard behind the segment check; it cannot fail today.
   if (target.origin !== base.origin || !target.pathname.startsWith("/api/")) {
     return fail(404, "not found");
   }
