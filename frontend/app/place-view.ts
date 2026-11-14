@@ -60,10 +60,3 @@ export function ratingBadge(
   const stars = `★ ${overview.rating.toFixed(1)}`;
   return overview.reviewCount === null ? stars : `${stars} · ${compactCount(overview.reviewCount)}`;
 }
-
-/** Hygiene badge text: null when the rating is unknown to the data, a label otherwise. */
-export function hygieneLabel(rating: number | null | undefined): string | null {
-  if (rating === undefined) return null;
-  if (rating === null) return "Hygiene not rated";
-  return `Hygiene ${rating}`;
-}

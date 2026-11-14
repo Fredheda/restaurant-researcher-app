@@ -16,7 +16,7 @@ describe("Card", () => {
   it("shows the rating badge, hygiene badge, why-this line and the route footer", () => {
     render(<Card place={fogo} selected={false} onToggleSelect={vi.fn()} onOpen={vi.fn()} />);
     expect(screen.getByText("★ 4.2 · 126")).toBeInTheDocument();
-    expect(screen.getByText("Hygiene 5")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Food hygiene rating 5 out of 5" })).toBeInTheDocument();
     expect(screen.getByText(/First rodizio on your list/)).toBeInTheDocument();
     expect(screen.getByText("Elizabeth line → Liverpool Street · 22 min")).toBeInTheDocument();
     expect(screen.getByText("Fit 7.5")).toBeInTheDocument();
@@ -26,11 +26,11 @@ describe("Card", () => {
     const { rerender } = render(
       <Card place={{ ...fogo, hygieneRating: null }} selected={false} onToggleSelect={vi.fn()} onOpen={vi.fn()} />
     );
-    expect(screen.getByText("Hygiene not rated")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Food hygiene rating: not rated" })).toBeInTheDocument();
     rerender(
       <Card place={{ ...fogo, hygieneRating: undefined }} selected={false} onToggleSelect={vi.fn()} onOpen={vi.fn()} />
     );
-    expect(screen.queryByText(/Hygiene/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: /Food hygiene/ })).not.toBeInTheDocument();
   });
 
   it("renders a search result with no fit, route, menu, rating or price", () => {
