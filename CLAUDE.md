@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Repo facts only. Everything else (style, git, worktrees, tickets, deploy rules, PR loop, tooling, Jira, plans): workspace `../CLAUDE.md`.
+Repo facts only, plus the Ownership note below (the GitHub review reads only this file). Everything else (style, git, worktrees, tickets, deploy rules, PR loop, tooling, Jira, plans): workspace `../CLAUDE.md`.
 
 PR titles and descriptions never mention Claude Code. `./scripts/ci-local.sh` is the local CI script: green before `gh pr ready`.
 
