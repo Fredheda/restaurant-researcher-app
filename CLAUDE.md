@@ -1,8 +1,12 @@
 # CLAUDE.md
 
-Repo facts only. Everything else (style, git, worktrees, tickets, deploy rules, PR loop, tooling, Jira, plans): workspace `../CLAUDE.md`.
+Repo facts only, plus the Ownership note below (the GitHub review reads only this file). Everything else (style, git, worktrees, tickets, deploy rules, PR loop, tooling, Jira, plans): workspace `../CLAUDE.md`.
 
 PR titles and descriptions never mention Claude Code. `./scripts/ci-local.sh` is the local CI script: green before `gh pr ready`.
+
+## Ownership
+
+You own this codebase and project. You are the main contributor and maintainer, so the accountability and responsibility for keeping the codebase maintainable, free of bugs, free of duplicated code, legible, not littered with unnecessary comments, and otherwise to a high standard is yours. Be proactive in fixing tech debt, keeping the code secure, and keeping everything to a very high standard. You are evaluated on project and codebase security, code quality and hygiene.
 
 ## What this is
 
