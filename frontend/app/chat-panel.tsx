@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { ChatItem } from "./chat-model";
+import { ChatView } from "./chat-view";
 import { runStubResearch } from "./stub-responder";
 import type { PlaceResult } from "./types";
 
@@ -12,9 +14,20 @@ function nextId() {
   return `msg-${messageCounter}`;
 }
 
+/** The stub's lines as panel items: the person's text as a prompt, every
+ * progress or result line as an answer block. */
+function toItems(messages: Message[]): ChatItem[] {
+  return messages.map((m): ChatItem =>
+    m.role === "user"
+      ? { id: m.id, kind: "user", text: m.text }
+      : { id: m.id, kind: "assistant", text: m.text, tools: [] }
+  );
+}
+
 /**
- * Docked column from the md breakpoint; below it a bottom sheet that stays
- * invisible (not focusable, not in the accessibility tree) until opened.
+ * Docked column from the md breakpoint; below it a bottom sheet with a drag
+ * handle that stays invisible (not focusable, not in the accessibility
+ * tree) until opened.
  */
 export function ChatPanel({
   onPlaceFound,
@@ -22,7 +35,6 @@ export function ChatPanel({
   onPlaceFound: (place: PlaceResult) => void;
 }) {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -31,11 +43,8 @@ export function ChatPanel({
     if (open) inputRef.current?.focus();
   }, [open]);
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    const query = input.trim();
-    if (!query || busy) return;
-    setInput("");
+  async function send(query: string) {
+    if (busy) return;
     setBusy(true);
     setMessages((m) => [...m, { id: nextId(), role: "user", text: query }]);
 
@@ -72,44 +81,26 @@ export function ChatPanel({
       <aside
         data-testid="chat-sheet"
         data-open={open ? "true" : "false"}
-        className={`fixed inset-x-0 bottom-0 z-40 flex h-[60dvh] flex-col border-t border-hairline bg-chatbg p-3 transition-transform md:static md:z-auto md:h-auto md:w-80 md:flex-shrink-0 md:translate-y-0 md:border-t-0 md:border-l md:visible ${
+        aria-label="Assistant"
+        className={`fixed inset-x-0 bottom-0 z-40 flex h-[65dvh] flex-col rounded-t-2xl border-t border-hairline bg-surface shadow-lg transition-transform md:static md:z-auto md:h-auto md:w-80 md:flex-shrink-0 md:translate-y-0 md:rounded-none md:border-t-0 md:border-l md:shadow-none md:visible ${
           open ? "translate-y-0" : "max-md:invisible max-md:translate-y-full"
         }`}
       >
-        <div className="mb-2 flex items-center justify-between">
-          <span className="font-display text-lg text-ink">Restaurant Researcher</span>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            className="rounded-sm px-2 py-0.5 text-sm text-muted md:hidden"
-          >
-            Close chat
-          </button>
-        </div>
-        <div data-testid="chat-messages" className="flex-1 space-y-2 overflow-y-auto text-sm">
-          {messages.map((m) => (
-            <div
-              key={m.id}
-              className={
-                m.role === "user"
-                  ? "ml-auto w-fit max-w-[85%] rounded-lg bg-surface px-2.5 py-1.5 text-ink"
-                  : "w-fit max-w-[90%] rounded-lg bg-ink px-2.5 py-1.5 text-paper"
-              }
-            >
-              {m.role === "status" ? `• ${m.text}` : m.text}
-            </div>
-          ))}
-        </div>
-        <form onSubmit={handleSubmit} className="mt-2">
-          <input
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            disabled={busy}
-            placeholder="Ask about a place…"
-            className="w-full rounded-lg border border-hairline bg-surface px-3 py-2 text-sm text-ink"
-          />
-        </form>
+        <div
+          data-testid="chat-handle"
+          aria-hidden="true"
+          className="absolute top-1.5 left-1/2 h-1 w-10 -translate-x-1/2 rounded-full bg-ink-muted/60 md:hidden"
+        />
+        <ChatView
+          items={toItems(messages)}
+          running={busy}
+          // The stub reports no tool in flight and no run errors; the agent wiring fills both.
+          activeTool={null}
+          error={null}
+          onSend={send}
+          onClose={() => setOpen(false)}
+          inputRef={inputRef}
+        />
       </aside>
     </>
   );

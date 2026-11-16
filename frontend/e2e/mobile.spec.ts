@@ -2,8 +2,11 @@ import { expect, test } from "@playwright/test";
 import {
   card,
   cardOpenButton,
+  chatChips,
+  chatHandle,
   chatInput,
   chatMessages,
+  chatSheet,
   closeButton,
   closeChatButton,
   compareButton,
@@ -41,6 +44,15 @@ test("phone layout: one column, chat sheet, overlay, route, compare and rating s
   await openChatButton(page).click();
   await expect(chatInput(page)).toBeVisible();
   await expect(chatInput(page)).toBeFocused();
+  await expect(chatSheet(page)).toHaveAttribute("data-open", "true");
+  await expect(chatHandle(page)).toBeAttached();
+  await expect(chatMessages(page)).toContainText("What can I do?");
+  await expect(chatChips(page)).toHaveCount(3);
+  await expect(chatSheet(page)).toContainText("● places · hygiene");
+  const chatBox = (await chatSheet(page).boundingBox())!;
+  expect(chatBox.x).toBeGreaterThanOrEqual(0);
+  expect(chatBox.x + chatBox.width).toBeLessThanOrEqual(WIDTH);
+  expect(chatBox.height).toBeLessThanOrEqual(HEIGHT * 0.66);
   await chatInput(page).fill("Fogo de Chão");
   await chatInput(page).press("Enter");
   await expect(chatMessages(page)).toContainText("Added Fogo de Chão to the board.", {
