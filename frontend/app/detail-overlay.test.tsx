@@ -35,6 +35,18 @@ describe("DetailOverlay", () => {
     expect(screen.queryByText(/null|undefined|NaN/)).not.toBeInTheDocument();
   });
 
+  it("shows the large hygiene badge with the scale, and hides it when unknown", () => {
+    const { rerender } = render(
+      <DetailOverlay place={{ ...sabor, hygieneRating: 4 }} onClose={vi.fn()} onRate={vi.fn()} />
+    );
+    expect(screen.getByRole("img", { name: "Food hygiene rating 4 out of 5" })).toBeInTheDocument();
+    expect(screen.getByTestId("hygiene-step-4")).toHaveAttribute("data-current", "true");
+    rerender(
+      <DetailOverlay place={{ ...sabor, hygieneRating: undefined }} onClose={vi.fn()} onRate={vi.fn()} />
+    );
+    expect(screen.queryByRole("img", { name: /Food hygiene/ })).not.toBeInTheDocument();
+  });
+
   it("calls onClose from the close button, not from clicking the panel", async () => {
     const onClose = vi.fn();
     render(<DetailOverlay place={sabor} onClose={onClose} onRate={vi.fn()} />);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compactCount, hygieneLabel, photoStyle, ratingBadge, routeSummary } from "./place-view";
+import { compactCount, photoStyle, ratingBadge, routeSummary } from "./place-view";
 import { PLACES } from "./fixtures/places";
 
 const fogo = PLACES.find((p) => p.id === "fogo-de-chao-bishopsgate")!;
@@ -54,13 +54,5 @@ describe("ratingBadge", () => {
     expect(ratingBadge({ rating: 4.2, reviewCount: 2140 })).toBe("★ 4.2 · 2.1k");
     expect(ratingBadge({ rating: 4.2, reviewCount: null })).toBe("★ 4.2");
     expect(ratingBadge({ rating: null, reviewCount: 10 })).toBeNull();
-  });
-});
-
-describe("hygieneLabel", () => {
-  it("labels a rating, a missing rating and an unknown one", () => {
-    expect(hygieneLabel(5)).toBe("Hygiene 5");
-    expect(hygieneLabel(null)).toBe("Hygiene not rated");
-    expect(hygieneLabel(undefined)).toBeNull();
   });
 });

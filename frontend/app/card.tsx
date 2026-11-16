@@ -1,5 +1,6 @@
 import type { PlaceResult } from "./types";
-import { hygieneLabel, photoStyle, ratingBadge, routeSummary } from "./place-view";
+import { HygieneBadge } from "./hygiene-badge";
+import { photoStyle, ratingBadge, routeSummary } from "./place-view";
 
 function Shimmer({ width }: { width: string }) {
   return (
@@ -27,7 +28,6 @@ export function Card({
   onToggleSelect: (id: string) => void;
   onOpen: (id: string) => void;
 }) {
-  const hygiene = hygieneLabel(place.hygieneRating);
   const stars = ratingBadge(place.overview);
   const route = routeSummary(place.journey);
 
@@ -61,11 +61,7 @@ export function Card({
               {stars}
             </span>
           )}
-          {hygiene && (
-            <span className="rounded-sm bg-hyg-bg px-1.5 py-0.5 font-semibold text-hyg-fg">
-              {hygiene}
-            </span>
-          )}
+          <HygieneBadge rating={place.hygieneRating} />
           {place.priceTier && <span className="text-muted">{place.priceTier}</span>}
           {place.overview.openStatus && (
             <span className="text-muted">{place.overview.openStatus}</span>
