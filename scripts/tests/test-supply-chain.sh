@@ -3,8 +3,8 @@
 #   1. a 14-day install cooldown for npm and Poetry, with no exclusions;
 #   2. no pip or pipx install from a version range;
 #   3. every GitHub Action pinned by commit, with its version as a comment.
-# To bump Poetry or pip: change the version in .github/workflows/ci.yml and
-# backend/Dockerfile together (check 2b fails when they differ).
+# To bump Poetry: change the version in .github/workflows/ci.yml and
+# backend/Dockerfile together (the "one Poetry version" check fails when they differ).
 #
 # Usage: ./scripts/tests/test-supply-chain.sh
 set -uo pipefail
