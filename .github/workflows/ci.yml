@@ -77,6 +77,9 @@ jobs:
       - name: Deploy script tests
         working-directory: .
         run: ./scripts/tests/test-deploy-scripts.sh
+      - name: Supply-chain guard
+        working-directory: .
+        run: ./scripts/tests/test-supply-chain.sh
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
