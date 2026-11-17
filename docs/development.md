@@ -79,6 +79,13 @@ GitHub Actions (`.github/workflows/ci.yml`) runs the same checks on every pull r
 
 `next-env.d.ts` and `*.tsbuildinfo` are generated and gitignored.
 
+## Dependencies
+
+- **Cooldown:** `frontend/.npmrc` and `backend/poetry.toml` make npm and Poetry resolve only versions that are at least 14 days old, the same window as Dependabot. `npm ci` and `poetry install` are not affected: they install what the lockfiles name.
+- **A security fix younger than 14 days** is taken only on the owner's yes for that package and version, with a one-off command and no committed exclusion: `npm install <package>@<version> --min-release-age-exclude=<package>` or `POETRY_SOLVER_MIN_RELEASE_AGE_EXCLUDE=<package> poetry update <package>`.
+- **Exact pins:** Poetry and pip are pinned in `.github/workflows/ci.yml` and `backend/Dockerfile`; bump both together. GitHub Actions are pinned by commit with the release as a comment; Dependabot updates them.
+- `scripts/tests/test-supply-chain.sh` fails the PR when one of these rules is broken.
+
 ## Making a change
 
 1. Work on a branch (in this workspace, in your own git worktree).
