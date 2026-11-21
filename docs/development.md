@@ -73,7 +73,7 @@ A 360 px browser test (`e2e/mobile.spec.ts`) guards the phone layout.
 
 The browser tests (`frontend/e2e/`) serve `.next/standalone` laid out as the Docker image does and need no network. First run: `npx playwright install chromium`. A failed run leaves a report in `frontend/playwright-report/`.
 
-`./scripts/ci-local.sh` runs the deploy-script tests, the backend checks and all of the above in CI order (plus `actionlint` when installed) and stops at the first failure.
+`./scripts/ci-local.sh` runs the deploy-script and supply-chain tests, the backend checks and all of the above in CI order (plus `actionlint` when installed) and stops at the first failure.
 
 GitHub Actions (`.github/workflows/ci.yml`) runs the same checks on every pull request and on nothing else. Which jobs run on a draft, which once the PR is ready, and the docs-only skip: `CLAUDE.md`, "Commands".
 
