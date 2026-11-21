@@ -55,6 +55,8 @@ npm ci
 npm run dev        # http://localhost:3000
 ```
 
+`npm run dev` and `npm run start` listen on 127.0.0.1 only. For another port: `npm run dev -- --port 3001`.
+
 Try asking for a place by name in the chat panel (for example "Fogo de Chão", defined in `frontend/app/fixtures/places.ts`). Names are matched without accents or punctuation. Anything not in the fixtures gets a "couldn't find that place" reply.
 
 ## Checks
@@ -84,6 +86,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs the same checks on every pull r
 - **Cooldown:** `frontend/.npmrc` and `backend/poetry.toml` make npm and Poetry resolve only versions that are at least 14 days old, the same window as Dependabot. `npm ci` and `poetry install` are not affected: they install what the lockfiles name.
 - **A security fix younger than 14 days** is taken only on the owner's yes for that package and version, with a one-off command and no committed exclusion: `npm install <package>@<version> --min-release-age-exclude=<package>` or `POETRY_SOLVER_MIN_RELEASE_AGE_EXCLUDE=<package> poetry update <package>`.
 - **Exact pins:** Poetry is pinned in `.github/workflows/ci.yml` and `backend/Dockerfile` (bump both together), pip in `backend/Dockerfile`. Only the image install also applies the 14-day window to Poetry's own dependencies. GitHub Actions are pinned by commit with the release as a comment; Dependabot updates them.
+- **Override:** `frontend/package.json` overrides `iconv-lite` to 0.7.3: 0.6.3 (pulled in by `jsdom` through `whatwg-encoding`) ships an `.idea` folder that a sandboxed `npm ci` cannot write. Drop the override when `whatwg-encoding` no longer pins 0.6.3.
 - `scripts/tests/test-supply-chain.sh` fails the PR when one of these rules is broken.
 
 ## Making a change

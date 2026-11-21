@@ -15,7 +15,7 @@ set -uo pipefail
 cd "$(dirname "$0")/../.." || exit 1
 ROOT=$PWD
 
-tmp=$(mktemp -d)
+tmp=$(mktemp -d "${TMPDIR:-/tmp}/rr-deploy-tests.XXXXXX")
 trap 'rm -rf "$tmp"' EXIT
 mkdir "$tmp/bin"
 cat >"$tmp/bin/az" <<'EOF'
