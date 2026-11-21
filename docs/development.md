@@ -55,6 +55,8 @@ npm ci
 npm run dev        # http://localhost:3000
 ```
 
+`npm run dev` and `npm run start` listen on 127.0.0.1 only (a guard test fails without `--hostname 127.0.0.1`). For another port: `npm run dev -- --port 3001`.
+
 Try asking for a place by name in the chat panel (for example "Fogo de Chão", defined in `frontend/app/fixtures/places.ts`). Names are matched without accents or punctuation. Anything not in the fixtures gets a "couldn't find that place" reply.
 
 ## Checks
