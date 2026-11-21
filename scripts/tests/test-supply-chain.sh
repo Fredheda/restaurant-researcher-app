@@ -2,7 +2,8 @@
 # Guards the supply-chain rules of this repo:
 #   1. a 14-day install cooldown for npm and Poetry, with no exclusions;
 #   2. no pip or pipx install from a version range;
-#   3. every GitHub Action pinned by commit, with its version as a comment.
+#   3. every GitHub Action pinned by commit, with its version as a comment;
+#   4. every Docker image pinned by digest, one digest per base image.
 # To bump Poetry: change the version in .github/workflows/ci.yml and
 # backend/Dockerfile together (the "one Poetry version" check fails when they differ).
 #
@@ -72,6 +73,21 @@ unpinned_actions() {
     grep -vE 'uses:[[:space:]]+[A-Za-z0-9_./-]+@[0-9a-f]{40}[[:space:]]+#[[:space:]]+v[0-9]'
 }
 check "every action is pinned by commit with its version" none unpinned_actions
+
+# 4. Docker images pinned by digest.
+unpinned_images() {
+  grep -nE '^FROM[[:space:]]' backend/Dockerfile frontend/Dockerfile |
+    grep -vE '@sha256:[0-9a-f]{64}'
+  grep -rnE 'docker run' .github/workflows |
+    grep -vE '@sha256:[0-9a-f]{64}'
+}
+split_digests() {
+  # prints each base image that is used with more than one digest
+  grep -hoE '^FROM[[:space:]]+[^[:space:]@]+@sha256:[0-9a-f]{64}' backend/Dockerfile frontend/Dockerfile |
+    awk '{ print $2 }' | sort -u | awk -F@ '{ count[$1]++ } END { for (i in count) if (count[i] > 1) print i }'
+}
+check "every image reference carries its digest" none unpinned_images
+check "one digest per base image" none split_digests
 
 if [ "$failures" -gt 0 ]; then
   echo "test-supply-chain: $failures failed"
