@@ -1,6 +1,6 @@
 # Deployment
 
-The app is served at restaurants.frederikheda.com, behind Entra Easy Auth. It is frontend only in this phase, serving stub chat and place data (see the frontend-scaffolding spec and plan under `docs/restaurant-researcher-app/` in the author's workspace notes, not in this repo).
+The app is served at restaurants.frederikheda.com, behind Entra Easy Auth. It is frontend only in this phase: the chat and the seeded cards are stub data, and the header search calls the backend through `/api/*`, which answers "unavailable" until the backend apps are deployed (see the frontend-scaffolding spec and plan under `docs/restaurant-researcher-app/` in the author's workspace notes, not in this repo).
 
 ## What is running
 
