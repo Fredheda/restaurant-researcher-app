@@ -1,6 +1,6 @@
 # Development
 
-Run the frontend from `frontend/` and the backend from `backend/`. The frontend does not call the backend yet: chat and place data come from built-in fixtures in `frontend/app/fixtures/places.ts`, and it needs no environment variables to run. Its `/api/*` proxy (`frontend/app/api/[...path]/route.ts`) is in place but nothing calls it yet; see the web variables below.
+Run the frontend from `frontend/` and the backend from `backend/`. The header search calls the backend through the `/api/*` proxy (`frontend/app/api/[...path]/route.ts`); the chat and the two seeded cards still come from built-in fixtures in `frontend/app/fixtures/places.ts`. The frontend needs no environment variables to start; without `API_URL` a search answers "Search is unavailable right now"; see the web variables below.
 
 ## Prerequisites
 
@@ -71,7 +71,7 @@ npm run e2e            # Playwright (Chromium) against the production build; run
 
 A 360 px browser test (`e2e/mobile.spec.ts`) guards the phone layout.
 
-The browser tests (`frontend/e2e/`) serve `.next/standalone` laid out as the Docker image does and need no network. First run: `npx playwright install chromium`. A failed run leaves a report in `frontend/playwright-report/`.
+The browser tests (`frontend/e2e/`) serve `.next/standalone` laid out as the Docker image does, beside a fake api (`frontend/e2e/fake-api.mjs`, port 3918, override with `E2E_API_PORT`), and need no network. First run: `npx playwright install chromium`. A failed run leaves a report in `frontend/playwright-report/`.
 
 `./scripts/ci-local.sh` runs the deploy-script and supply-chain tests, the backend checks and all of the above in CI order (plus `actionlint` when installed) and stops at the first failure.
 

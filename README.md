@@ -13,7 +13,7 @@ A web interface for the `restaurant-researcher` skill: research a venue by chatt
 - **Detail view.** Open a card to see the full picture: review quotes (positive and negative), the whole menu with dishes that match your taste marked, the reasoning behind the fit score and any misses, and the journey from Canary Wharf as a left-to-right strip with each leg's line and minutes. From there you can open the rating sheet to score a visit (dishes, cocktails, vibe, staff, service); saving is a demo for now.
 - **Compare.** Select two to four cards and compare taste fit, price, rating and journey time in one table.
 
-The current phase is frontend only. Chat replies and place data come from built-in demo fixtures, so the UI can be built and tested before the research agent is connected.
+The current phase is frontend first. Chat replies and the seeded cards come from built-in demo fixtures, so the UI can be built and tested before the research agent is connected; the header search already calls the backend's `/api/searches`.
 
 ## How it works
 
@@ -25,9 +25,11 @@ flowchart LR
     A --> C[Chat panel]
     C --> S[Stub responder]
     S --> F[(Demo place fixtures)]
+    A --> H[Header search]
+    H --> P[/api proxy to the api app/]
 ```
 
-The app is a single Next.js page. The chat sends a query to a stub responder, which plays a short sequence of progress messages and then looks the place up by name (accent-insensitive) in a set of fixtures. A matching place is added to the board. Selecting cards enables the compare view. A typed `PlaceResult` model (overview; optional menu, taste fit, journey and existing rating, which cards hide when absent) is the contract the real research agent will fill later.
+The app is a single Next.js page. The header search posts the query to `/api/searches` through a narrow proxy and replaces the board with the places the api returns. The chat sends a query to a stub responder, which plays a short sequence of progress messages and then looks the place up by name (accent-insensitive) in a set of fixtures. A matching place is added to the board. Selecting cards enables the compare view. A typed `PlaceResult` model (overview; optional menu, taste fit, journey and existing rating, which cards hide when absent) is the contract the real research agent will fill later.
 
 The app runs on Azure Container Apps behind Microsoft Entra Easy Auth: only approved users can reach it, and it scales to zero when idle.
 
