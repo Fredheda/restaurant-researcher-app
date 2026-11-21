@@ -39,7 +39,7 @@ done
 
 built=()
 if [ "${#missing[@]}" -gt 0 ]; then
-  src=$(mktemp -d)
+  src=$(mktemp -d "${TMPDIR:-/tmp}/rr-build-push.XXXXXX")
   trap 'rm -rf "$src"' EXIT
   git archive "$SHA" | tar -x -C "$src"
   cd "$src"
