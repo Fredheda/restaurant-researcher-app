@@ -4,6 +4,12 @@
 import type { Locator, Page } from "@playwright/test";
 
 export const chatInput = (page: Page) => page.getByPlaceholder("Ask about a place…");
+export const searchInput = (page: Page) => page.getByLabel("Search places");
+export const searchButton = (page: Page, name: "Search" | "Searching…") =>
+  page.getByRole("button", { name });
+// Next.js adds its own role="alert" route announcer to every page, so a bare
+// getByRole("alert") would match two elements.
+export const searchError = (page: Page) => page.getByTestId("search-error");
 export const chatMessages = (page: Page) => page.getByTestId("chat-messages");
 export const chatSheet = (page: Page) => page.getByTestId("chat-sheet");
 export const chatHandle = (page: Page) => page.getByTestId("chat-handle");
