@@ -27,11 +27,12 @@ cd frontend && npm ci && npm run dev                      # http://localhost:300
 cd frontend && npm test && npm run lint && npx tsc --noEmit && npm run build && npm run e2e
 cd backend && poetry install && poetry run pytest -q && poetry run ruff check . && poetry run ruff format --check . && poetry run pyright
 ./scripts/tests/test-deploy-scripts.sh                    # deploy scripts, fake az
+./scripts/tests/test-supply-chain.sh                      # supply-chain guard
 ./scripts/ci-local.sh                                     # all of the above in CI order
 ```
 
 - Node 24 with npm 12.2.2, in CI and in `frontend/Dockerfile`. `next-env.d.ts` and `*.tsbuildinfo` are generated and gitignored.
-- CI (`.github/workflows/ci.yml`) runs on pull requests only, never on a push to `main`. A draft PR runs the light jobs (`changes`, `backend`, `checks`: deploy-script tests, vitest, lint, `tsc`); `build` (production build plus the browser tests) and the AI review run once the PR is ready. A docs-only PR (`*.md` or `docs/`) skips all three. CI never builds an image.
+- CI (`.github/workflows/ci.yml`) runs on pull requests only, never on a push to `main`. A draft PR runs the light jobs (`changes`, `backend`, `checks`: deploy-script tests, supply-chain guard, vitest, lint, `tsc`); `build` (production build plus the browser tests) and the AI review run once the PR is ready. A docs-only PR (`*.md` or `docs/`) skips all three. CI never builds an image.
 - **Merging:** the owner merges, except the bot and docs classes in the workspace `CLAUDE.md` (Git), which the coordinator merges.
 - Tests: backend tests are offline, every external client is a fake passed to `create_app`. Browser tests (`frontend/e2e/`) run against the production build with no network; every locator lives in `frontend/e2e/selectors.ts` and ESLint rejects `.locator()` in specs. A new test must catch a bug no other test catches.
 
@@ -49,6 +50,7 @@ Code deploys with the manual **Deploy** workflow (`main` only; full SHA or head 
 
 - `.github/workflows/security.yml`: `gitleaks` and `workflow-lint` block every PR; `npm-audit` runs weekly only and its failure is the alert (`docs/development.md`). No CodeQL and no backend audit yet. Locally: `gitleaks git . --redact`, `actionlint`, `cd frontend && npm audit --omit=dev --audit-level=high`.
 - `.github/dependabot.yml`: monthly, grouped minor and patch PRs per ecosystem (npm, pip, GitHub Actions, both Dockerfiles), label `dependencies`, 14-day cooldown. npm, pip, Node-image and Python-image majors and the Python minor are ignored and done by hand; GitHub Actions majors arrive as separate PRs. Security updates come from the repo settings and open at once.
+- Dependencies: 14-day install cooldown, exact Poetry and pip pins, actions pinned by commit; guarded by `scripts/tests/test-supply-chain.sh` (`docs/development.md`, "Dependencies").
 - `.github/workflows/claude-review.yml`: comment-only AI review on every push to a ready PR (security first, then a documentation check), never on drafts or Dependabot PRs; the owner can request one with `@claude`. Token expiry: `deployment/expirations.md`.
 
 ## Gotchas

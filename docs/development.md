@@ -73,7 +73,7 @@ A 360 px browser test (`e2e/mobile.spec.ts`) guards the phone layout.
 
 The browser tests (`frontend/e2e/`) serve `.next/standalone` laid out as the Docker image does and need no network. First run: `npx playwright install chromium`. A failed run leaves a report in `frontend/playwright-report/`.
 
-`./scripts/ci-local.sh` runs the deploy-script tests, the backend checks and all of the above in CI order (plus `actionlint` when installed) and stops at the first failure.
+`./scripts/ci-local.sh` runs the deploy-script and supply-chain tests, the backend checks and all of the above in CI order (plus `actionlint` when installed) and stops at the first failure.
 
 GitHub Actions (`.github/workflows/ci.yml`) runs the same checks on every pull request and on nothing else. Which jobs run on a draft, which once the PR is ready, and the docs-only skip: `CLAUDE.md`, "Commands".
 
@@ -81,7 +81,13 @@ GitHub Actions (`.github/workflows/ci.yml`) runs the same checks on every pull r
 
 `next-env.d.ts` and `*.tsbuildinfo` are generated and gitignored.
 
-`frontend/package.json` overrides `iconv-lite` to 0.7.3: 0.6.3 (pulled in by `jsdom` through `whatwg-encoding`) ships an `.idea` folder that a sandboxed `npm ci` cannot write. Drop the override when `whatwg-encoding` no longer pins 0.6.3.
+## Dependencies
+
+- **Cooldown:** `frontend/.npmrc` and `backend/poetry.toml` make npm and Poetry resolve only versions that are at least 14 days old, the same window as Dependabot. `npm ci` and `poetry install` are not affected: they install what the lockfiles name.
+- **A security fix younger than 14 days** is taken only on the owner's yes for that package and version, with a one-off command and no committed exclusion: `npm install <package>@<version> --min-release-age-exclude=<package>` or `POETRY_SOLVER_MIN_RELEASE_AGE_EXCLUDE=<package> poetry update <package>`.
+- **Exact pins:** Poetry is pinned in `.github/workflows/ci.yml` and `backend/Dockerfile` (bump both together), pip in `backend/Dockerfile`. Only the image install also applies the 14-day window to Poetry's own dependencies. GitHub Actions are pinned by commit with the release as a comment; Dependabot updates them.
+- **Override:** `frontend/package.json` overrides `iconv-lite` to 0.7.3: 0.6.3 (pulled in by `jsdom` through `whatwg-encoding`) ships an `.idea` folder that a sandboxed `npm ci` cannot write. Drop the override when `whatwg-encoding` no longer pins 0.6.3.
+- `scripts/tests/test-supply-chain.sh` fails the PR when one of these rules is broken.
 
 ## Making a change
 
