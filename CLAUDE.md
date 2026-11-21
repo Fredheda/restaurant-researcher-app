@@ -4,7 +4,7 @@ Repo facts only, plus the Ownership note below (the GitHub review reads only thi
 
 PR titles and descriptions never mention Claude Code. `./scripts/ci-local.sh` is the local CI script: green before `gh pr ready`.
 
-PR size (workspace rule "Small PRs"): one concern per PR, reviewable in about 15 minutes, roughly under 400 hand-written lines (lockfiles, fixtures and generated files excluded); split bigger work into one ticket per PR.
+PR size (workspace rule "Tickets, tiers and PR size"): one concern per PR, about 20 changed files and under 5000 changed lines (lockfiles, fixtures and generated files excluded); split bigger work into one ticket per PR before coding.
 
 ## Ownership
 
