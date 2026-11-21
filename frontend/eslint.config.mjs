@@ -7,6 +7,23 @@ const eslintConfig = defineConfig([
   ...nextTs,
   globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts", "playwright-report/**", "test-results/**"]),
   {
+    // System font stacks only (--font-display, --font-sans in globals.css): no bundled or hosted fonts.
+    files: ["app/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["next/font", "next/font/*"],
+              message: "Use the system font stacks in globals.css; no bundled or hosted fonts.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // Every locator lives in e2e/selectors.ts; specs call its helpers.
     files: ["e2e/**/*.spec.ts"],
     rules: {

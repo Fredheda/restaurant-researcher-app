@@ -79,6 +79,8 @@ GitHub Actions (`.github/workflows/ci.yml`) runs the same checks on every pull r
 
 `next-env.d.ts` and `*.tsbuildinfo` are generated and gitignored.
 
+`frontend/package.json` overrides `iconv-lite` to 0.7.3: 0.6.3 (pulled in by `jsdom` through `whatwg-encoding`) ships an `.idea` folder that a sandboxed `npm ci` cannot write. Drop the override when `whatwg-encoding` no longer pins 0.6.3.
+
 ## Making a change
 
 1. Work on a branch (in this workspace, in your own git worktree).
