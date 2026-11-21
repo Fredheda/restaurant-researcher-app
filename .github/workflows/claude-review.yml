@@ -60,8 +60,9 @@ jobs:
             summary.
 
             About this repo: a Next.js 16 / React 19 / Tailwind 4 website for a
-            restaurant research skill, with a stub chat and stub place data,
-            deployed to Azure Container Apps. Look hard at: API keys or other
+            restaurant research skill, with a stub chat and seeded place cards
+            plus a header search that calls the api app through a narrow
+            /api/* proxy, deployed to Azure Container Apps. Look hard at: API keys or other
             secrets in client code (anything exposed through NEXT_PUBLIC_
             variables or bundled into the browser), dependency and Next.js
             config problems, and secrets or unsafe commands in deploy scripts.
