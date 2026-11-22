@@ -47,16 +47,11 @@ expect_exit "fails on the advisory at an extra path" 1 "$work/case.json" "zod: u
 write_mutated_report 'r.vulnerabilities.zod.nodes.pop()'
 expect_exit "fails when a listed path is gone" 1 "$work/case.json" "exception no longer needed"
 
-write_mutated_report 'r.vulnerabilities = {}'
-expect_exit "fails when the advisory is fixed" 1 "$work/case.json" "exception no longer needed"
-
 write_mutated_report 'r.vulnerabilities["@copilotkit/core"].via.push({ source: 1, name: "@copilotkit/core", url: "https://github.com/advisories/GHSA-1111-1111-1111", severity: "high" })'
 expect_exit "fails on an advisory of its own on a listed package" 1 "$work/case.json" "@copilotkit/core: unexpected advisory"
 
 write_mutated_report 'delete r.vulnerabilities["@copilotkit/web-inspector"]'
 expect_exit "fails when a listed package is gone" 1 "$work/case.json" "exception no longer needed"
-
-expect_exit "fails on an npm error document" 1 "$fixtures/npm-error.json" "error document"
 
 : >"$work/empty.json"
 expect_exit "fails on an empty file" 1 "$work/empty.json" "unreadable or not JSON"

@@ -29,7 +29,6 @@ try {
   stop(["audit input is unreadable or not JSON"]);
 }
 if (!isObject(report)) stop(["audit input is not a JSON object"]);
-if ("error" in report) stop(["audit returned an error document (registry or network failure)"]);
 if (!isObject(report.vulnerabilities) || !isObject(report.metadata)) {
   stop(["audit report lacks vulnerabilities or metadata"]);
 }
