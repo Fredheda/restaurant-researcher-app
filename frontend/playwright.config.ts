@@ -10,7 +10,6 @@ export default defineConfig({
   testMatch: "**/*.spec.ts",
   fullyParallel: true,
   forbidOnly: ci,
-  // No retries: a test that needs one is flaky, and a flaky test fails the run.
   retries: 0,
   failOnFlakyTests: ci,
   reporter: ci ? [["list"], ["html", { open: "never" }]] : "list",

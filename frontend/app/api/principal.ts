@@ -7,10 +7,6 @@
  * the check can do: if Easy Auth were ever off, a caller could send an id
  * header of its own and this code could not tell. Keep Easy Auth on for the
  * whole app and never exclude `/api/*` from it.
- *
- * Nothing else from the incoming request is forwarded: not the cookie, not
- * `authorization`, not the `x-ms-token-*` provider tokens, and not the
- * base64 `x-ms-client-principal` claims blob.
  */
 const PRINCIPAL_ID = "x-ms-client-principal-id";
 const PRINCIPAL_NAME = "x-ms-client-principal-name";
@@ -31,11 +27,6 @@ function printableAscii(value: string): boolean {
   return true;
 }
 
-/**
- * The principal headers to send upstream, or `null` when the request carries
- * no usable principal id. A bad name or provider is dropped (the backend
- * treats both as optional); a bad id refuses the whole request.
- */
 export function principalHeaders(from: Headers): Headers | null {
   const id = (from.get(PRINCIPAL_ID) ?? "").trim();
   if (!ID_PATTERN.test(id)) return null;

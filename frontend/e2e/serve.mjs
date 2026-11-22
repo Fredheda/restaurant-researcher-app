@@ -1,7 +1,5 @@
 // Serves the production build the way the image does: .next/standalone with
 // .next/static and public copied beside server.js (see frontend/Dockerfile).
-// Copies into a temp dir so the build output stays untouched.
-// Run `npm run build` first. Port: E2E_PORT (default 3917).
 // This server always points at the fake api (e2e/fake-api.mjs, E2E_API_PORT,
 // default 3918) and the fake agent (e2e/fake-agent.mjs, E2E_AGENT_PORT, default
 // 3919) and is for the browser tests only; a local run uses `npm start`.

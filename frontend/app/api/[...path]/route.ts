@@ -1,25 +1,7 @@
 /**
- * Proxies `/api/*` to the internal api app at `API_URL`, a runtime variable
- * so one image works in every environment (a `next.config` rewrite would be
- * baked in at build time).
- *
- * This is a narrow forwarder, not an open proxy:
- * - the target is always `<API_URL origin>/api/<segments>`; each segment is
- *   checked against a small character set, so no dot segment, slash,
- *   backslash, `@` or percent escape can steer it elsewhere;
- * - only GET and POST are exported (everything else gets 405);
- * - upstream is never followed through a redirect;
- * - requests without a usable Easy Auth principal are refused (a local run
- *   with `ALLOW_ANONYMOUS` sends none), and only the principal headers,
- *   `content-type` and `accept` are sent on;
- * - a POST must be same-origin (when the browser says where it comes from)
- *   and JSON, and its body is counted in bytes while it is read;
- * - of the upstream headers only `content-type` comes back, with `nosniff`,
- *   `no-store` (answers are per person) or, for an event stream, the headers
- *   that keep it unbuffered;
- * - failures answer with fixed text, never an exception message.
- *
- * A more specific route under `app/api/` wins over this catch-all.
+ * `API_URL` is read at runtime so one image works in every environment (a
+ * `next.config` rewrite would be baked in at build time). A more specific route
+ * under `app/api/` wins over this catch-all.
  */
 import { fail, readBody, rejectUnlessSameOriginJson, upstreamOrigin } from "../guards";
 import { principalHeaders } from "../principal";
@@ -66,7 +48,6 @@ async function proxy(request: Request, { params }: Context): Promise<Response> {
 
   const { path } = await params;
   if (!safeSegments(path)) return fail(404, "not found");
-  // `API_URL` contributes its origin only; a path in it is ignored.
   const target = new URL(`/api/${path.join("/")}`, base);
   // Second guard behind the segment check; it cannot fail today.
   if (target.origin !== base.origin || !target.pathname.startsWith("/api/")) {
@@ -108,7 +89,6 @@ async function proxy(request: Request, { params }: Context): Promise<Response> {
     try {
       upstream = await send(target.toString(), init, request.signal);
     } catch (error) {
-      // No second try when the browser left or the api already took 60 s.
       if (request.signal.aborted || error instanceof HeaderTimeout) break;
     }
   }
