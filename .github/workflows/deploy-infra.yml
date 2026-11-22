@@ -48,7 +48,7 @@ jobs:
           echo "SHA=$sha" >> "$GITHUB_ENV"
 
       - name: Install the pinned Bicep CLI
-        run: az bicep install --version v0.46.1
+        run: az bicep install --version v0.49.2
 
       - name: Log in to Azure
         env:
