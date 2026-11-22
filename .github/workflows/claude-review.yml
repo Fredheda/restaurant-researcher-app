@@ -35,6 +35,9 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Record when this review started
+        run: echo "RUN_STARTED=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
+
       - uses: anthropics/claude-code-action@61a9c274fa7110a66dfafc1bbbced03833eb25fe # v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -124,7 +127,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          count=$(gh pr view "$PR_NUMBER" --json comments --jq '[.comments[].body | select(contains("Verdict: ready to merge") or contains("Verdict: changes requested"))] | length')
+          count=$(gh pr view "$PR_NUMBER" --json comments --jq '[.comments[] | select(.createdAt >= env.RUN_STARTED) | .body | select(contains("Verdict: ready to merge") or contains("Verdict: changes requested"))] | length')
           if [ "$count" -eq 0 ]; then
             echo "::error::The review posted no Verdict line; the review did not run to completion."
             exit 1
