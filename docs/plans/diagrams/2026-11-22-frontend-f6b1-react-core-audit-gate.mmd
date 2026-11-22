@@ -1,0 +1,25 @@
+flowchart TB
+  subgraph repo["restaurant-researcher-app repo"]
+    pkg["frontend/package.json + lockfile<br/>react-core, scoped zod overrides"]:::changed
+    gate["scripts/audit-gate.mjs"]:::new
+    gtest["scripts/tests/test-audit-gate.sh<br/>+ recorded audit JSON"]:::new
+    cilocal["scripts/ci-local.sh"]:::changed
+    docs["docs/development.md, CLAUDE.md"]:::changed
+  end
+  subgraph gh["GitHub Actions"]
+    ci["ci.yml checks job<br/>runs the gate test"]:::changed
+    sec["security.yml npm-audit (weekly)<br/>npm audit --json to file, then gate"]:::changed
+  end
+  subgraph ext["External"]
+    reg["npm registry audit API"]:::unchanged
+  end
+  gtest --> gate
+  cilocal --> gtest
+  ci --> gtest
+  sec --> reg
+  sec -->|"audit.json"| gate
+  pkg -.->|"installed tree audited"| sec
+  classDef new fill:#c8e6c9,stroke:#2e7d32
+  classDef changed fill:#ffe0b2,stroke:#ef6c00
+  classDef unchanged fill:#eeeeee,stroke:#757575
+  legend["green new, amber changed, grey unchanged"]:::unchanged
