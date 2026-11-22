@@ -271,6 +271,27 @@ check "wait-healthy fails on Failed" test "$rc" -eq 1
 FAKE_PROVISIONING=Provisioning run ./scripts/wait-healthy.sh 1 0
 check "wait-healthy times out" test "$rc" -eq 1
 
+# --- infra/main.bicep -----------------------------------------------------
+# The identity that deploys this file cannot write roles, identities or the
+# environment, and a deployment re-submits every resource in the file.
+
+BICEP=infra/main.bicep
+created_resources() { grep -E "^resource .*$1" "$BICEP" | grep -v ' existing = '; }
+secure_params_with_default() { grep -A1 '^@secure()' "$BICEP" | grep -E '^param .* = '; }
+resource_block() { sed -n "/^resource $1 /,/^}/p" "$BICEP"; }
+web_declares_secrets() { resource_block frontend | grep -q 'secrets:'; }
+backends_are_internal() { resource_block backend | grep -q 'external: false'; }
+
+check "main.bicep declares no role assignment" not grep -q 'Microsoft\.Authorization' "$BICEP"
+check "main.bicep creates no identity" test -z "$(created_resources 'Microsoft\.ManagedIdentity/')"
+check "main.bicep creates no managed environment" test -z "$(created_resources 'Microsoft\.App/managedEnvironments')"
+check "main.bicep refers to both app identities and the environment as existing" \
+  test "$(grep -cE '^resource .* existing = ' "$BICEP")" -eq 3
+check "main.bicep has exactly two secure params" test "$(grep -c '^@secure()' "$BICEP")" -eq 2
+check "the secure params have no default" test -z "$(secure_params_with_default)"
+check "the web app declares no secrets block" not web_declares_secrets
+check "the backend apps have internal ingress" backends_are_internal
+
 # --- infra/deploy.sh ------------------------------------------------------
 
 THIRD=3333333333333333333333333333333333333333

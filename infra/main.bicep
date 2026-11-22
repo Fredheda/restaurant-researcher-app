@@ -1,10 +1,10 @@
-// Azure Container Apps deployment for the restaurant-researcher-app frontend.
-// Frontend-only this phase — no backend Container App exists yet.
+// The web, api and agent Container Apps of restaurant-researcher-app, in the
+// existing rg-chatbot resource group.
 //
-// Provisions, into the existing rg-chatbot resource group:
-//   - a Container Apps environment (no Log Analytics)
-//   - a user-assigned managed identity granted AcrPull on the EXISTING registry
-//   - the frontend app (ca-restaurant-researcher-web): external ingress
+// Only Container Apps are created here: the identity that deploys this file
+// cannot write identities, role assignments or the environment.
+// scripts/setup-github-deploy.sh creates both app identities and their
+// AcrPull grants; this file refers to them and to the environment as existing.
 //
 // Easy Auth is intentionally NOT here — per-user role assignment can't be
 // expressed in Bicep, so it stays in scripts/setup-easyauth.sh +
@@ -24,39 +24,120 @@ param environmentName string = 'cae-restaurant-researcher'
 @description('Frontend (Next.js) container app name.')
 param frontendAppName string = 'ca-restaurant-researcher-web'
 
-@description('User-assigned managed identity used for ACR pulls.')
-param identityName string = 'id-restaurant-researcher-acrpull'
+@description('Api container app name.')
+param apiAppName string = 'ca-restaurant-researcher-api'
 
-@description('Image tag to deploy (e.g. a git commit SHA).')
-param imageTag string
+@description('Agent container app name.')
+param agentAppName string = 'ca-restaurant-researcher-agent'
 
-var acrPullRoleId = '7f951dda-4ed3-4680-a7ca-43fe172d538d'
+@description('Existing user-assigned managed identity the web app pulls images as.')
+param pullIdentityName string = 'id-restaurant-researcher-acrpull'
+
+@description('Existing user-assigned managed identity the api and agent apps run as.')
+param backendIdentityName string = 'id-restaurant-researcher-backend'
+
+@description('Web image tag (a git commit SHA).')
+param webImageTag string
+
+@description('Api image tag (a git commit SHA).')
+param apiImageTag string
+
+@description('Agent image tag (a git commit SHA).')
+param agentImageTag string
+
+@description('Fully qualified host name of the Azure SQL server.')
+param sqlServer string
+
+@description('Database name on that server.')
+param sqlDatabase string
+
+// No default: an app's secrets are replaced on every deploy, so a default
+// would overwrite a working key without an error.
+@description('Google Places API key.')
+@secure()
+param googlePlacesKey string
+
+@description('OpenAI API key.')
+@secure()
+param openaiApiKey string
+
 var loginServer = '${acrName}.azurecr.io'
 
-resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
-  name: acrName
+var backendApps = [
+  { name: apiAppName, role: 'api', tag: apiImageTag }
+  { name: agentAppName, role: 'agent', tag: agentImageTag }
+]
+
+resource pullIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
+  name: pullIdentityName
 }
 
-resource identity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-  name: identityName
-  location: location
+resource backendIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
+  name: backendIdentityName
 }
 
-resource acrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(acr.id, identity.id, acrPullRoleId)
-  scope: acr
-  properties: {
-    principalId: identity.properties.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', acrPullRoleId)
-  }
-}
-
-resource environment 'Microsoft.App/managedEnvironments@2025-01-01' = {
+resource environment 'Microsoft.App/managedEnvironments@2025-01-01' existing = {
   name: environmentName
-  location: location
-  properties: {}
 }
+
+resource backend 'Microsoft.App/containerApps@2025-01-01' = [for app in backendApps: {
+  name: app.name
+  location: location
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${backendIdentity.id}': {}
+    }
+  }
+  properties: {
+    environmentId: environment.id
+    configuration: {
+      activeRevisionsMode: 'Single'
+      ingress: {
+        external: false
+        targetPort: 8000
+        transport: 'auto'
+        allowInsecure: false
+      }
+      registries: [
+        {
+          server: loginServer
+          identity: backendIdentity.id
+        }
+      ]
+      secrets: concat(
+        [{ name: 'google-places-key', value: googlePlacesKey }],
+        app.role == 'agent' ? [{ name: 'openai-api-key', value: openaiApiKey }] : []
+      )
+    }
+    template: {
+      containers: [
+        {
+          name: 'restaurant-researcher-${app.role}'
+          image: '${loginServer}/restaurant-researcher-backend:${app.tag}'
+          resources: {
+            cpu: json('0.25')
+            memory: '0.5Gi'
+          }
+          env: concat(
+            [
+              { name: 'APP_ROLE', value: app.role }
+              { name: 'GOOGLE_PLACES_API_KEY', secretRef: 'google-places-key' }
+              { name: 'SQL_SERVER', value: sqlServer }
+              { name: 'SQL_DATABASE', value: sqlDatabase }
+              { name: 'AZURE_CLIENT_ID', value: backendIdentity.properties.clientId }
+            ],
+            app.role == 'agent' ? [{ name: 'OPENAI_API_KEY', secretRef: 'openai-api-key' }] : []
+          )
+        }
+      ]
+      scale: {
+        minReplicas: 0
+        maxReplicas: 1
+      }
+    }
+  }
+}]
 
 resource frontend 'Microsoft.App/containerApps@2025-01-01' = {
   name: frontendAppName
@@ -64,12 +145,9 @@ resource frontend 'Microsoft.App/containerApps@2025-01-01' = {
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
-      '${identity.id}': {}
+      '${pullIdentity.id}': {}
     }
   }
-  dependsOn: [
-    acrPull
-  ]
   properties: {
     environmentId: environment.id
     configuration: {
@@ -92,10 +170,12 @@ resource frontend 'Microsoft.App/containerApps@2025-01-01' = {
           }
         ]
       }
+      // No `secrets` block: ARM treats it as the complete list, so declaring
+      // one drops the Easy Auth secret that setup-easyauth.sh stores.
       registries: [
         {
           server: loginServer
-          identity: identity.id
+          identity: pullIdentity.id
         }
       ]
     }
@@ -103,11 +183,15 @@ resource frontend 'Microsoft.App/containerApps@2025-01-01' = {
       containers: [
         {
           name: 'restaurant-researcher-web'
-          image: '${loginServer}/restaurant-researcher-web:${imageTag}'
+          image: '${loginServer}/restaurant-researcher-web:${webImageTag}'
           resources: {
             cpu: json('0.25')
             memory: '0.5Gi'
           }
+          env: [
+            { name: 'API_URL', value: 'https://${backend[0].properties.configuration.ingress.fqdn}' }
+            { name: 'AGENT_URL', value: 'https://${backend[1].properties.configuration.ingress.fqdn}' }
+          ]
         }
       ]
       scale: {
@@ -117,5 +201,3 @@ resource frontend 'Microsoft.App/containerApps@2025-01-01' = {
     }
   }
 }
-
-output frontendFqdn string = frontend.properties.configuration.ingress.fqdn
