@@ -24,6 +24,7 @@ cd frontend && npm test && npm run lint && npx tsc --noEmit && npm run build && 
 cd backend && poetry install && poetry run pytest -q && poetry run ruff check . && poetry run ruff format --check . && poetry run pyright
 ./scripts/tests/test-deploy-scripts.sh                    # deploy scripts, fake az
 ./scripts/tests/test-supply-chain.sh                      # supply-chain guard
+./scripts/apply-schema.sh --check                         # SQL batches, offline
 ./scripts/ci-local.sh                                     # all of the above in CI order
 ```
 
@@ -53,7 +54,7 @@ Code deploys with the manual **Deploy** workflow (`main` only; full SHA or head 
 
 - The backend apps are not deployed yet: the deploy scripts skip them until the infra deploy creates them.
 - The agent id `restaurant_researcher` (`AGENT_NAME` in `backend/app/agent/server.py`) must match the web app's CopilotKit runtime route (`AGENT_ID` in `frontend/app/agent.ts`) and provider `agent` prop (the route exists, the provider does not yet).
-- `backend/sql/` scripts are idempotent and applied by hand by the owner; agents and the apps never run DDL.
+- `backend/sql/` scripts are idempotent and applied by the owner with `./scripts/apply-schema.sh` (his `az login`; `--verify` checks the backend identity's rights); agents and the apps never run DDL or that script, except `--dry-run` and `--check`, which are offline.
 
 Not yet enforced here: `scripts/rules/` and the CI job `rules` arrive with RR-64; the rules sentences in the shared block below describe that target.
 

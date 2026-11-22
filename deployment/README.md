@@ -25,6 +25,7 @@ The app scales to zero, so the first request after idle takes about 15-40 second
 | Only build and push an image | `./scripts/build-push.sh [sha]` (skips an image that exists) |
 | Roll to an already-pushed image, including a rollback | `./scripts/redeploy.sh [sha]` |
 | Approve a new user | `./scripts/approve-user.sh <email>` |
+| SQL schema and the backend identity's database user (owner only; needs `az login`, `SQL_SERVER` and `SQL_DATABASE` in the shell, and your IP on the SQL server firewall) | `./scripts/apply-schema.sh` (idempotent, re-run freely); `--dry-run` lists the files and `--check` prints the batches, both offline; `--verify` is read only and fails when the backend identity lacks its rights on schema `rr` |
 | Auth setup or secret rotation | `./scripts/setup-easyauth.sh` (idempotent, resets the secret) |
 
 ## Deploy button
