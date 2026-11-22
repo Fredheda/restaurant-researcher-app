@@ -271,8 +271,6 @@ check "wait-healthy fails on Failed" test "$rc" -eq 1
 FAKE_PROVISIONING=Provisioning run ./scripts/wait-healthy.sh 1 0
 check "wait-healthy times out" test "$rc" -eq 1
 
-# --- deploy workflows -----------------------------------------------------
-
 INFRA_WF=.github/workflows/deploy-infra.yml
 wf_line() { grep -n -- "$2" "$1" | head -1 | cut -d: -f1; }
 wf_before() { local a b; a=$(wf_line "$1" "$2"); b=$(wf_line "$1" "$3"); [ -n "$a" ] && [ -n "$b" ] && [ "$a" -lt "$b" ]; }
