@@ -1,0 +1,41 @@
+flowchart TB
+  subgraph laptop["Owner laptop (owner only, az login)"]
+    APPLY["scripts/apply-schema.sh + backend/tools/apply_schema.py"]
+    SQLF["backend/sql/003_backend_identity.sql"]
+    TESTS["test-deploy-scripts.sh wrapper check, pyproject pyright include"]
+    AZLOGIN["az login as the server's Entra admin"]
+  end
+
+  subgraph azure["Azure identity (created by the RR-33 setup script)"]
+    IDBACKEND["id-...-backend (api and agent apps)"]
+  end
+
+  subgraph data["Data"]
+    SQL[("Shared Azure SQL database")]
+    DBUSER["Database user for the backend identity, rights on schema rr"]
+  end
+
+  SQLF -->|"read and split by"| APPLY
+  AZLOGIN -->|"token"| APPLY
+  APPLY -->|"DDL, CREATE USER and GRANT"| SQL
+  SQL --> DBUSER
+  IDBACKEND -.->|"same display name"| DBUSER
+  TESTS -.->|"checks the wrapper"| APPLY
+
+  subgraph legend["Legend"]
+    LNEW["new"]
+    LCHANGED["changed"]
+    LSAME["unchanged"]
+  end
+
+  classDef new fill:#d4edda,stroke:#2e7d32,color:#111
+  classDef changed fill:#fff3cd,stroke:#b26a00,color:#111
+  classDef unchanged fill:#e9ecef,stroke:#6c757d,color:#111
+
+  class APPLY,SQLF,DBUSER,LNEW new
+  class TESTS,LCHANGED changed
+  class AZLOGIN,IDBACKEND,SQL,LSAME unchanged
+
+  linkStyle 0,2,3,4 stroke:#2e7d32,stroke-width:2px
+  linkStyle 1 stroke:#6c757d,stroke-width:2px
+  linkStyle 5 stroke:#b26a00,stroke-width:2px
