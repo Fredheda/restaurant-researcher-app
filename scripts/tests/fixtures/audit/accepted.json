@@ -1,0 +1,122 @@
+{
+  "auditReportVersion": 2,
+  "vulnerabilities": {
+    "@a2ui/web_core": {
+      "name": "@a2ui/web_core",
+      "severity": "high",
+      "isDirect": false,
+      "via": ["zod"],
+      "effects": ["@copilotkit/a2ui-renderer", "@copilotkit/core", "@copilotkit/react-core"],
+      "range": "*",
+      "nodes": ["node_modules/@a2ui/web_core"],
+      "fixAvailable": { "name": "@copilotkit/react-core", "version": "1.54.1", "isSemVerMajor": true }
+    },
+    "@copilotkit/a2ui-renderer": {
+      "name": "@copilotkit/a2ui-renderer",
+      "severity": "high",
+      "isDirect": false,
+      "via": ["@a2ui/web_core", "zod"],
+      "effects": ["@copilotkit/react-core"],
+      "range": "*",
+      "nodes": ["node_modules/@copilotkit/a2ui-renderer"],
+      "fixAvailable": { "name": "@copilotkit/react-core", "version": "1.54.1", "isSemVerMajor": true }
+    },
+    "@copilotkit/core": {
+      "name": "@copilotkit/core",
+      "severity": "high",
+      "isDirect": false,
+      "via": ["@a2ui/web_core"],
+      "effects": ["@copilotkit/react-core", "@copilotkit/web-inspector"],
+      "range": "1.84.2-canary.1793807121 - 2.0.0-rc.42",
+      "nodes": ["node_modules/@copilotkit/core"],
+      "fixAvailable": { "name": "@copilotkit/react-core", "version": "1.54.1", "isSemVerMajor": true }
+    },
+    "@copilotkit/react-core": {
+      "name": "@copilotkit/react-core",
+      "severity": "high",
+      "isDirect": true,
+      "via": ["@a2ui/web_core", "@copilotkit/a2ui-renderer", "@copilotkit/core", "@copilotkit/web-inspector", "katex", "streamdown"],
+      "effects": [],
+      "range": "<=0.0.0-tyler-v2-x-fixes-20260123210508 || 1.51.3-next.0 - 1.51.3-next.5 || 1.55.0-next.7 - 2.0.0-rc.42",
+      "nodes": ["node_modules/@copilotkit/react-core"],
+      "fixAvailable": { "name": "@copilotkit/react-core", "version": "1.54.1", "isSemVerMajor": true }
+    },
+    "@copilotkit/web-inspector": {
+      "name": "@copilotkit/web-inspector",
+      "severity": "high",
+      "isDirect": false,
+      "via": ["@copilotkit/core"],
+      "effects": ["@copilotkit/react-core"],
+      "range": "1.57.2 || 1.84.2-canary.1793807121 - 2.0.0-rc.42",
+      "nodes": ["node_modules/@copilotkit/web-inspector"],
+      "fixAvailable": { "name": "@copilotkit/react-core", "version": "1.54.1", "isSemVerMajor": true }
+    },
+    "zod": {
+      "name": "zod",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1243066,
+          "name": "zod",
+          "dependency": "zod",
+          "title": "Zod can exhaust memory while validating oversized constrained collections",
+          "url": "https://github.com/advisories/GHSA-mrhx-c7xc-m3w5",
+          "severity": "high",
+          "cwe": ["CWE-770"],
+          "cvss": { "score": 7.5, "vectorString": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H" },
+          "range": "<4.6.6"
+        }
+      ],
+      "effects": ["@a2ui/web_core", "@copilotkit/a2ui-renderer"],
+      "range": "<4.6.6",
+      "nodes": [
+        "node_modules/@a2ui/web_core/node_modules/zod",
+        "node_modules/@copilotkit/a2ui-renderer/node_modules/zod"
+      ],
+      "fixAvailable": { "name": "@copilotkit/react-core", "version": "1.54.1", "isSemVerMajor": true }
+    },
+    "katex": {
+      "name": "katex",
+      "severity": "low",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1241206,
+          "name": "katex",
+          "dependency": "katex",
+          "title": "KaTeX: Existing prototype pollution can bypass trust restrictions",
+          "severity": "low",
+          "range": "<0.16.50"
+        }
+      ],
+      "effects": [],
+      "range": "<0.16.50",
+      "nodes": ["node_modules/katex"],
+      "fixAvailable": true
+    },
+    "@hono/node-server": {
+      "name": "@hono/node-server",
+      "severity": "moderate",
+      "isDirect": false,
+      "via": [
+        {
+          "source": 1243661,
+          "name": "@hono/node-server",
+          "dependency": "@hono/node-server",
+          "title": "@hono/node-server: serveStatic decodes the request path a second time",
+          "severity": "moderate",
+          "range": "<2.0.0"
+        }
+      ],
+      "effects": [],
+      "range": "<2.0.0",
+      "nodes": ["node_modules/@hono/node-server"],
+      "fixAvailable": true
+    }
+  },
+  "metadata": {
+    "vulnerabilities": { "info": 0, "low": 6, "moderate": 1, "high": 6, "critical": 0, "total": 13 },
+    "dependencies": { "prod": 1171, "dev": 489, "optional": 147, "peer": 17, "peerOptional": 0, "total": 1707 }
+  }
+}

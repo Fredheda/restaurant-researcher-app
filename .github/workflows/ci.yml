@@ -1,12 +1,5 @@
 name: CI
 
-# Run the same checks locally with scripts/ci-local.sh before `gh pr ready`.
-#
-# Runs on pull requests only: a merge to main starts no run, because the PR
-# already ran the same checks. A draft PR runs only the light jobs (changes,
-# backend, checks); the build runs once the PR is ready for review. A newer push to the
-# same PR cancels the run that is still going. CI never builds or deploys an
-# image: the manual Deploy workflow (deploy.yml) does that.
 on:
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review]
@@ -29,7 +22,6 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 2
-      # Docs-only means every changed file is *.md or under docs/.
       - id: diff
         run: |
           if git diff --name-only HEAD^1 HEAD | grep -qvE '(^docs/|\.md$)'; then
@@ -38,8 +30,6 @@ jobs:
             echo "code=false" >> "$GITHUB_OUTPUT"
           fi
 
-  # Light: backend tests, lint, format and types, on every push to a draft or
-  # ready PR.
   backend:
     needs: changes
     if: needs.changes.outputs.code == 'true'
@@ -63,7 +53,6 @@ jobs:
       - run: poetry run ruff format --check .
       - run: poetry run pyright
 
-  # Light: tests, lint and type-check, on every push to a draft or ready PR.
   checks:
     needs: changes
     if: needs.changes.outputs.code == 'true'
@@ -91,9 +80,10 @@ jobs:
       - run: npm test
       - run: npm run lint
       - run: npx tsc --noEmit
+      - name: Audit gate tests
+        working-directory: .
+        run: ./scripts/tests/test-audit-gate.sh
 
-  # Heavy: the production build and the browser tests, only once the PR is
-  # ready for review.
   build:
     needs: changes
     if: needs.changes.outputs.code == 'true' && github.event.pull_request.draft == false
@@ -112,7 +102,6 @@ jobs:
       - run: npm install -g npm@12.2.2
       - run: npm ci
       - run: npm run build
-      # Browser tests against the production build, offline (Chromium only).
       - id: playwright
         run: echo "version=$(npx playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
