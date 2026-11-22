@@ -1,10 +1,18 @@
 # Deployment
 
-The app is served at restaurants.frederikheda.com, behind Entra Easy Auth. It is frontend only in this phase: the chat and the seeded cards are stub data, and the header search calls the backend through `/api/*`, which answers "unavailable" until the backend apps are deployed (see the frontend-scaffolding spec and plan under `docs/restaurant-researcher-app/` in the author's workspace notes, not in this repo).
+The app is served at restaurants.frederikheda.com, behind Entra Easy Auth. Until the first infra deploy creates the api and agent apps it is frontend only: the chat and the seeded cards are stub data, and the header search calls the backend through `/api/*`, which answers "unavailable".
 
 ## What is running
 
-Infra: the `cae-restaurant-researcher` Container Apps environment in the shared `rg-chatbot` resource group (westeurope), with no Log Analytics. It holds one app today, `ca-restaurant-researcher-web` (external ingress, `minReplicas: 0` / `maxReplicas: 1`, `0.25` CPU / `0.5Gi` memory). The backend apps `ca-restaurant-researcher-api` and `-agent` are added by infra later; the scripts skip them until they exist. Images live in the shared `acrchatbotfredheda` registry and are pulled via `id-restaurant-researcher-acrpull` (passwordless, managed identity).
+Infra: the `cae-restaurant-researcher` Container Apps environment in the shared `rg-chatbot` resource group (westeurope), with no Log Analytics. The environment holds only the web, api and agent apps (the last two once infra creates them). Every app scales to zero (`minReplicas: 0` / `maxReplicas: 1`, `0.25` CPU / `0.5Gi` memory).
+
+| App | Ingress | Runs as | Image |
+|---|---|---|---|
+| `ca-restaurant-researcher-web` | external, port 3000 | `id-restaurant-researcher-acrpull` | `restaurant-researcher-web` |
+| `ca-restaurant-researcher-api` | internal, port 8000 | `id-restaurant-researcher-backend` | `restaurant-researcher-backend` (`APP_ROLE=api`) |
+| `ca-restaurant-researcher-agent` | internal, port 8000 | `id-restaurant-researcher-backend` | `restaurant-researcher-backend` (`APP_ROLE=agent`) |
+
+The api and agent apps are created by the first infra run; until then the scripts skip them. The web app reaches them through `API_URL` and `AGENT_URL`, their internal https origins, which `infra/main.bicep` sets. Both backend apps hold the Google Places key as an app secret and the agent app also holds the OpenAI key; the web app declares no secret (its Easy Auth secret is set by `setup-easyauth.sh`). `setup-github-deploy.sh` creates both identities and their `AcrPull` grants; the Bicep file only refers to them and to the environment, and creates Container Apps only. Images live in the shared `acrchatbotfredheda` registry and are pulled without a password, as the app's managed identity.
 
 The app scales to zero, so the first request after idle takes about 15-40 seconds. Once the assistant is wired to the agent app, it keeps conversations in the web app's memory, so after idle a conversation starts fresh, and the web app must stay at one replica: a second replica would answer a thread it does not hold with 404. Ingress ends a request after 240 seconds, so a longer agent run ends as an error in the chat.
 
@@ -13,7 +21,7 @@ The app scales to zero, so the first request after idle takes about 15-40 second
 | What changed | Run (from the repo root) |
 |---|---|
 | Code | The **Deploy** workflow on GitHub (below); `./scripts/ship.sh` is the laptop fallback (builds, pushes, rolls the app; refuses a dirty tree) |
-| Infra (`infra/main.bicep`) | `./infra/deploy.sh [image-tag]` from a laptop; the tag defaults to the one the app runs now, so pass the deployed SHA only to change it |
+| Infra (`infra/main.bicep`) | `./infra/deploy.sh [sha]` with the four variables set (see Infra deploy); each app keeps the tag it runs now unless you pass a SHA |
 | Only build and push an image | `./scripts/build-push.sh [sha]` (skips an image that exists) |
 | Roll to an already-pushed image, including a rollback | `./scripts/redeploy.sh [sha]` |
 | Approve a new user | `./scripts/approve-user.sh <email>` |
@@ -41,6 +49,10 @@ Entra Easy Auth, using the `restaurant-researcher-easyauth` app registration wit
 
 The Easy Auth client secret expires; see [expirations.md](expirations.md).
 
-## When the backend agent is added
+## Infra deploy
 
-This file needs a second section for that Container App, as `deploying-azure-projects` recommends for a second deployable. Do not leave this file describing only the frontend once the backend lands. See the Future Work section of the frontend-scaffolding spec.
+`./infra/deploy.sh [sha]` applies `infra/main.bicep`. It reads `GOOGLE_PLACES_API_KEY`, `OPENAI_API_KEY`, `SQL_SERVER` and `SQL_DATABASE` from the environment only, and stops naming a variable that is missing. The keys reach `az` through a private temp file that is removed on exit, never the command line. It prints the three tags it will use. It does not check the registry: a tag whose image does not exist fails the new revision, and the running revision keeps serving.
+
+Without an argument each app keeps the tag it runs now. With a full SHA all three apps get that tag; the first run needs it, because the api and agent apps do not exist yet to read a tag from. Run **Deploy** for that SHA first, so the images exist.
+
+First rollout, in order: `setup-github-deploy.sh` (identities), **Deploy** (builds the images), the infra deploy (creates the api and agent apps), `setup-github-deploy.sh` again (the deploy identity's roles on the new apps), **Deploy** again (rolls all three apps and locks the tags).
