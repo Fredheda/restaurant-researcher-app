@@ -16,6 +16,8 @@ const PRINCIPAL_ID = "x-ms-client-principal-id";
 const PRINCIPAL_NAME = "x-ms-client-principal-name";
 const PRINCIPAL_IDP = "x-ms-client-principal-idp";
 
+export const PRINCIPAL_HEADER_NAMES = [PRINCIPAL_ID, PRINCIPAL_NAME, PRINCIPAL_IDP];
+
 // Entra object ids are GUIDs; the backend refuses ids over 64 characters.
 const ID_PATTERN = /^[A-Za-z0-9._@:-]{1,64}$/;
 const IDP_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
