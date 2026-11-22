@@ -1,10 +1,10 @@
 # Deployment
 
-The app is served at restaurants.frederikheda.com, behind Entra Easy Auth. It is frontend only in this phase: the chat and the seeded cards are stub data, and the header search calls the backend through `/api/*`, which answers "unavailable" until the backend apps are deployed.
+The app is served at restaurants.frederikheda.com, behind Entra Easy Auth. Until the first infra deploy creates the api and agent apps it is frontend only: the chat and the seeded cards are stub data, and the header search calls the backend through `/api/*`, which answers "unavailable".
 
 ## What is running
 
-Infra: the `cae-restaurant-researcher` Container Apps environment in the shared `rg-chatbot` resource group (westeurope), with no Log Analytics. The environment holds only the web, api and agent apps. Every app scales to zero (`minReplicas: 0` / `maxReplicas: 1`, `0.25` CPU / `0.5Gi` memory).
+Infra: the `cae-restaurant-researcher` Container Apps environment in the shared `rg-chatbot` resource group (westeurope), with no Log Analytics. The environment holds only the web, api and agent apps (the last two once infra creates them). Every app scales to zero (`minReplicas: 0` / `maxReplicas: 1`, `0.25` CPU / `0.5Gi` memory).
 
 | App | Ingress | Runs as | Image |
 |---|---|---|---|
