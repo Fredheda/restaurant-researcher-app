@@ -3,9 +3,9 @@
 - **Ticket:** RR-33 (sibling RR-32 defines the identity and app names; RR-36 is the live run)
 - **Repo:** `restaurant-researcher-app`
 - **Tier:** non-trivial
-- **Status:** draft, 2026-11-22
+- **Status:** approved by the specialist, 2026-11-22
 - **Parent:** `2026-11-01-backend-scaffold-and-fast-search.md` (decision 5), plan Task 14 part 1
-- **Schematic:** `diagrams/2026-11-22-backend-rollout-pipeline-setup-and-sql-schema.mmd`
+- **Schematic:** `../plans/diagrams/2026-11-22-backend-rollout-pipeline-setup-and-sql-schema.mmd`
 
 ## TL;DR
 
@@ -184,4 +184,4 @@ Gate 10 before `Deploy infra` runs shows the roles on both identities, the custo
 
 ## Mermaid schematic
 
-`diagrams/2026-11-22-backend-rollout-pipeline-setup-and-sql-schema.mmd`: owner laptop, GitHub, Azure identity and RBAC, data. Green is new, amber changed, grey unchanged, as boxes and arrows, with a legend.
+`../plans/diagrams/2026-11-22-backend-rollout-pipeline-setup-and-sql-schema.mmd`: owner laptop, GitHub, Azure identity and RBAC, data. Green is new, amber changed, grey unchanged, as boxes and arrows, with a legend.

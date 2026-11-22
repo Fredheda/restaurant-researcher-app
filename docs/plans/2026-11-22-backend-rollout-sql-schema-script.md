@@ -4,7 +4,7 @@
 - **Repo:** `restaurant-researcher-app`
 - **Tier:** non-trivial
 - **Spec:** `docs/specs/2026-11-22-backend-rollout-pipeline-setup-and-sql-schema.md` (the RR-33 spec; this plan covers its section 2 and 3, the setup script is RR-33's plan `2026-11-22-backend-rollout-pipeline-setup-and-sql-schema.md`)
-- **Status:** draft
+- **Status:** approved by the specialist, 2026-11-22
 - **Date:** 2026-11-22
 - **Schematic:** `diagrams/2026-11-22-backend-rollout-sql-schema-script.mmd`
 - **Order:** branched from `main` after RR-33 (PR 1, the setup script) has merged. Both PRs edit `scripts/tests/test-deploy-scripts.sh` and `deployment/README.md`, and this PR's anchors below are written against RR-33's result. The owner alone runs the script; agents never do (except the offline `--dry-run` and `--check`).

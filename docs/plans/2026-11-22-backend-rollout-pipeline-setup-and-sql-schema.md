@@ -4,7 +4,7 @@
 - **Repo:** `restaurant-researcher-app`
 - **Tier:** non-trivial
 - **Spec:** `docs/specs/2026-11-22-backend-rollout-pipeline-setup-and-sql-schema.md` (sibling RR-32: `docs/specs/2026-11-22-backend-rollout-bicep-api-agent-apps.md`)
-- **Status:** draft
+- **Status:** approved by the specialist, 2026-11-22
 - **Date:** 2026-11-22
 - **Schematic:** `diagrams/2026-11-22-backend-rollout-pipeline-setup-and-sql-schema.mmd`
 - **Sibling plan:** RR-71, `2026-11-22-backend-rollout-sql-schema-script.md` (the schema script, its own PR). It is branched from `main` after this PR merged, because both edit `scripts/tests/test-deploy-scripts.sh` and `deployment/README.md`. This plan merges first and needs nothing from RR-71.

@@ -3,8 +3,8 @@
 - Ticket: RR-32 (origin: Task 13 of `plans/2026-11-01-backend-scaffold-and-fast-search.md`, spec `specs/2026-11-01-backend-scaffold-and-fast-search.md`)
 - Repo: `restaurant-researcher-app`
 - Tier: non-trivial (new Azure resources, secrets)
-- Status: draft, 2026-11-22
-- Diagram: `diagrams/2026-11-22-backend-rollout-bicep-api-agent-apps.mmd`
+- Status: approved by the specialist, 2026-11-22
+- Diagram: `../plans/diagrams/2026-11-22-backend-rollout-bicep-api-agent-apps.mmd`
 
 ## TL;DR
 
@@ -290,4 +290,4 @@ Not touched: `scripts/lib/images.sh`, `redeploy.sh`, `build-push.sh`, `wait-heal
 
 ## Schematic
 
-`diagrams/2026-11-22-backend-rollout-bicep-api-agent-apps.mmd` (Mermaid `flowchart TB`: green new, amber changed, grey unchanged, with legend).
+`../plans/diagrams/2026-11-22-backend-rollout-bicep-api-agent-apps.mmd` (Mermaid `flowchart TB`: green new, amber changed, grey unchanged, with legend).

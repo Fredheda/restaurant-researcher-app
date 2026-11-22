@@ -6,7 +6,7 @@
 - Spec: `docs/specs/2026-11-22-backend-rollout-bicep-api-agent-apps.md` (the binding rules of the specialist, 2026-11-22, win where the spec is stale)
 - Related: `docs/specs/2026-11-22-backend-rollout-pipeline-setup-and-sql-schema.md` (RR-33); the `Deploy infra` workflow of the same spec is RR-70, plan `plans/2026-11-22-backend-rollout-deploy-infra-workflow.md`
 - Needs merged first: RR-33 (setup script: both app identities with their `AcrPull`, the infra identity and its custom role). RR-70 needs this plan merged first, not the other way round.
-- Status: draft
+- Status: approved by the specialist, 2026-11-22
 - Date: 2026-11-22
 - Diagram: `diagrams/2026-11-22-backend-rollout-bicep-api-agent-apps.mmd`
 
