@@ -6,7 +6,7 @@
 - Spec: `docs/specs/2026-11-22-backend-rollout-bicep-api-agent-apps.md` (the RR-32 spec, section "`Deploy infra` workflow"; the binding rules of the specialist, 2026-11-22, win where the spec is stale)
 - Related: `specs/2026-11-22-backend-rollout-pipeline-setup-and-sql-schema.md` (RR-33), plan `plans/2026-11-22-backend-rollout-bicep-api-agent-apps.md` (RR-32)
 - Needs merged first: RR-32 (the `infra/deploy.sh` this workflow runs, its docs and the test file sections this plan extends) and RR-33 (setup script: infra identity, its custom role and federated credential, repo secret `AZURE_INFRA_CLIENT_ID`)
-- Status: approved by the specialist, 2026-11-22
+- Status: done (PR #68)
 - Date: 2026-11-22
 - Diagram: `diagrams/2026-11-22-backend-rollout-deploy-infra-workflow.mmd`
 
