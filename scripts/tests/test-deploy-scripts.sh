@@ -9,6 +9,10 @@
 #   FAKE_PROVISIONING   comma list of revision states, one per `revision show` call
 #   FAKE_ABSENT         comma list of apps that do not exist (every containerapp call fails)
 #   FAKE_BROKEN         comma list of apps whose containerapp calls fail with another error
+#   FAKE_NO_IDENTITY    comma list of identities that do not exist until `identity create` runs
+#   FAKE_BROKEN_IDENTITY comma list of identities whose `identity show` fails with another error
+#   FAKE_ROLE_EXISTS    1 when the custom role definition already exists
+#   FAKE_SECRETS        comma list of environment secret names `gh secret list` reports
 #
 # Usage: ./scripts/tests/test-deploy-scripts.sh
 set -uo pipefail
@@ -22,6 +26,8 @@ cat >"$tmp/bin/az" <<'EOF'
 #!/usr/bin/env bash
 echo "$*" >> "$FAKE_LOG"
 app=$(echo "$*" | sed -nE 's/.* -n ([^ ]+).*/\1/p')
+RG_ID=/subscriptions/sub-test/resourceGroups/rg-chatbot
+in_list() { case ",$1," in *",$2,"*) return 0 ;; esac; return 1; }
 case "$*" in
   "containerapp "*)
     case ",${FAKE_ABSENT:-}," in *",$app,"*) echo "ResourceNotFound" >&2; exit 3 ;; esac
@@ -39,6 +45,31 @@ case "$*" in
     [ "${FAKE_FAIL_UPDATE:-}" = any ] && exit 1
     [ -n "${FAKE_FAIL_UPDATE:-}" ] && [ "$app" = "$FAKE_FAIL_UPDATE" ] && exit 1
     exit 0 ;;
+  "account show"*"--query tenantId"*) echo "tenant-test"; exit 0 ;;
+  "account show"*"--query id"*) echo "sub-test"; exit 0 ;;
+  "acr show"*"--query id"*) echo "$RG_ID/providers/Microsoft.ContainerRegistry/registries/acr.example"; exit 0 ;;
+  "identity create"*) echo "$app" >> "$FAKE_LOG.created"; exit 0 ;;
+  "identity show"*)
+    if in_list "${FAKE_BROKEN_IDENTITY:-}" "$app"; then echo "AuthorizationFailed" >&2; exit 4; fi
+    if in_list "${FAKE_NO_IDENTITY:-}" "$app" && ! grep -qx "$app" "$FAKE_LOG.created" 2>/dev/null; then
+      echo "(ResourceNotFound) The Resource was not found." >&2
+      exit 3
+    fi
+    case "$*" in
+      *"--query principalId"*) echo "pid-$app" ;;
+      *"--query clientId"*) echo "cid-$app" ;;
+      *"--query id"*) echo "$RG_ID/providers/Microsoft.ManagedIdentity/userAssignedIdentities/$app" ;;
+    esac
+    exit 0 ;;
+  "role definition list"*)
+    if [ "${FAKE_ROLE_EXISTS:-}" = 1 ]; then echo 1; else echo 0; fi
+    exit 0 ;;
+  "role definition create"*|"role definition update"*)
+    file=$(echo "$*" | sed -E 's/.*--role-definition ([^ ]+).*/\1/')
+    echo "$file" > "$FAKE_LOG.roledef-path"
+    cp "$file" "$FAKE_LOG.roledef-$3"
+    exit 0 ;;
+  "containerapp show"*"--query id"*) echo "$RG_ID/providers/Microsoft.App/containerApps/$app"; exit 0 ;;
   "containerapp show"*latestRevisionName*) echo "$app--rev1"; exit 0 ;;
   "containerapp show"*ingress.fqdn*) echo "web.example.test"; exit 0 ;;
   "containerapp show"*image*)
@@ -67,6 +98,12 @@ echo "$*" >> "$FAKE_LOG.gh"
 case "$*" in
   *"customization/sub"*) echo "repo:Fredheda@1/restaurant-researcher-app@2"; exit 0 ;;
   *" users/"*) echo 77542239; exit 0 ;;
+  *"secret list"*)
+    IFS=',' read -r -a names <<<"${FAKE_SECRETS:-}"
+    for name in "${names[@]}"; do
+      [ -z "$name" ] || printf '%s\t2026-11-22\n' "$name"
+    done
+    exit 0 ;;
   *"--input -"*) cat >> "$FAKE_LOG.gh-body"; exit 0 ;;
 esac
 exit 0
@@ -90,10 +127,11 @@ fail() { echo "FAIL  $1"; failures=$((failures + 1)); }
 run() {
   LOG="$tmp/log.$RANDOM"
   : >"$LOG"
-  rm -f "$LOG.build-dir" "$LOG.n" "$LOG.gh" "$LOG.gh-body"
-  PATH="$tmp/bin:$PATH" FAKE_LOG="$LOG" "$@" >/dev/null 2>&1
+  rm -f "$LOG".*
+  PATH="$tmp/bin:$PATH" FAKE_LOG="$LOG" "$@" >"$LOG.out" 2>&1
   rc=$?
 }
+printed() { grep -q -- "$1" "$LOG.out"; }
 called() { grep -q -- "$1" "$LOG"; }
 count() { grep -c -- "$1" "$LOG"; }
 gh_called() { grep -q -- "$1" "$LOG.gh"; }
@@ -230,6 +268,97 @@ check "setup adds the main branch policy" gh_called "deployment-branch-policies 
 check "setup makes the repo owner the required reviewer" gh_body_has '"reviewers": \[{"type": "User", "id": 77542239}\]'
 check "setup lets the owner approve his own run" gh_body_has '"prevent_self_review": false'
 check "setup lets no admin bypass the gate" gh_body_has '"can_admins_bypass": false'
+
+DEPLOY_ID=id-restaurant-researcher-gh-deploy
+INFRA_ID=id-restaurant-researcher-gh-infra
+PULL_ID=id-restaurant-researcher-acrpull
+BACKEND_ID=id-restaurant-researcher-backend
+INFRA_ROLE="Restaurant Researcher Infra Deployer"
+RG_SCOPE=/subscriptions/sub-test/resourceGroups/rg-chatbot
+ACR_SCOPE=$RG_SCOPE/providers/Microsoft.ContainerRegistry/registries/acr.example
+identity_scope() { echo "$RG_SCOPE/providers/Microsoft.ManagedIdentity/userAssignedIdentities/$1"; }
+app_scope() { echo "$RG_SCOPE/providers/Microsoft.App/containerApps/$1"; }
+granted() { called "assignee-object-id pid-$1 --assignee-principal-type ServicePrincipal --role $2 --scope $3 -o none"; }
+grant_count() { count "--role $1 --scope $2 -o none"; }
+roledef_has() { grep -q -F -- "$1" "$LOG.roledef-create"; }
+roledef_lacks() { test -s "$LOG.roledef-create" && ! grep -q -i -F -- "$1" "$LOG.roledef-create"; }
+roledef_file_removed() { local path; path=$(cat "$LOG.roledef-path") && [ -n "$path" ] && [ ! -e "$path" ]; }
+
+run ./scripts/setup-github-deploy.sh
+check "setup creates no identity that already exists" not called "identity create"
+check "setup grants AcrPull to the backend identity" granted "$BACKEND_ID" AcrPull "$ACR_SCOPE"
+check "setup grants AcrPull to the web app's pull identity" granted "$PULL_ID" AcrPull "$ACR_SCOPE"
+check "setup trusts the production environment for the infra identity" \
+  called "federated-credential create -g rg-chatbot --identity-name $INFRA_ID --name github-production --issuer https://token.actions.githubusercontent.com --subject repo:Fredheda@1/restaurant-researcher-app@2:environment:production"
+check "setup stores the infra client id as a repo secret" \
+  gh_called "secret set AZURE_INFRA_CLIENT_ID --body cid-$INFRA_ID -R Fredheda/restaurant-researcher-app"
+check "setup creates the custom role" called "role definition create"
+check "setup does not update a role it just created" not called "role definition update"
+check "the custom role is assignable in the resource group only" \
+  roledef_has "\"AssignableScopes\": [\"$RG_SCOPE\"]"
+check "the custom role has no wildcard" roledef_lacks "*"
+check "the custom role has nothing under Microsoft.Authorization" roledef_lacks "Microsoft.Authorization"
+check "the custom role cannot write identities" roledef_lacks "userAssignedIdentities/write"
+check "the custom role cannot touch federated credentials" roledef_lacks "federatedIdentityCredentials"
+check "the custom role cannot delete anything" roledef_lacks '/delete"'
+check "the custom role cannot read secret values" roledef_lacks "listSecrets"
+check "the custom role does not attach identities (separate assignment)" roledef_lacks "assign/action"
+check "the custom role has no data actions" roledef_has "\"DataActions\": []"
+check "the custom role keeps deployments, apps and the environment join" \
+  bash -c "for a in Microsoft.Resources/deployments/write Microsoft.App/containerApps/write Microsoft.App/managedEnvironments/join/action Microsoft.App/managedEnvironments/managedCertificates/read Microsoft.ManagedIdentity/userAssignedIdentities/read; do grep -q -F \"\$a\" '$LOG.roledef-create' || exit 1; done"
+check "setup removes the role definition file" roledef_file_removed
+check "setup assigns the custom role to the infra identity at the resource group" \
+  granted "$INFRA_ID" "$INFRA_ROLE" "$RG_SCOPE"
+check "infra identity operates the web pull identity" \
+  granted "$INFRA_ID" "Managed Identity Operator" "$(identity_scope "$PULL_ID")"
+check "infra identity operates the backend identity" \
+  granted "$INFRA_ID" "Managed Identity Operator" "$(identity_scope "$BACKEND_ID")"
+check "deploy identity operates the web pull identity" \
+  granted "$DEPLOY_ID" "Managed Identity Operator" "$(identity_scope "$PULL_ID")"
+check "deploy identity operates the backend identity" \
+  granted "$DEPLOY_ID" "Managed Identity Operator" "$(identity_scope "$BACKEND_ID")"
+check "the backend identity is operated by exactly the deploy and infra identities" \
+  test "$(grant_count "Managed Identity Operator" "$(identity_scope "$BACKEND_ID")")" -eq 2
+for app in "$API_APP" "$AGENT_APP" "$WEB_APP"; do
+  check "deploy identity manages $app" granted "$DEPLOY_ID" "Container Apps Contributor" "$(app_scope "$app")"
+done
+check "infra identity gets no Container Apps Contributor" \
+  not granted "$INFRA_ID" "Container Apps Contributor" "$(app_scope "$API_APP")"
+check "backend AcrPull comes before the deploy identity's backend operator grant" \
+  before "pid-$BACKEND_ID .*--role AcrPull" "pid-$DEPLOY_ID .*Managed Identity Operator --scope .*$BACKEND_ID"
+check "the deploy identity's backend operator grant comes before the app grants" \
+  before "pid-$DEPLOY_ID .*Managed Identity Operator --scope .*$BACKEND_ID" "pid-$DEPLOY_ID .*Container Apps Contributor"
+
+FAKE_ABSENT="$BACKEND_ABSENT" run ./scripts/setup-github-deploy.sh
+check "setup skips the app roles of backend apps that do not exist yet" test "$rc" -eq 0
+check "setup then grants Container Apps Contributor on the web app only" \
+  test "$(count "--role Container Apps Contributor")" -eq 1
+check "setup still grants the backend identity roles then" granted "$DEPLOY_ID" "Managed Identity Operator" "$(identity_scope "$BACKEND_ID")"
+
+FAKE_NO_IDENTITY="$BACKEND_ID,$PULL_ID,$INFRA_ID" run ./scripts/setup-github-deploy.sh
+check "setup creates a missing backend identity once" test "$(count "identity create -g rg-chatbot -n $BACKEND_ID")" -eq 1
+check "setup creates a missing web pull identity once" test "$(count "identity create -g rg-chatbot -n $PULL_ID")" -eq 1
+check "setup creates a missing infra identity once" test "$(count "identity create -g rg-chatbot -n $INFRA_ID")" -eq 1
+check "setup creates only the identities that are missing" test "$(count "identity create")" -eq 3
+check "setup grants the identity it just created" granted "$BACKEND_ID" AcrPull "$ACR_SCOPE"
+
+FAKE_ROLE_EXISTS=1 run ./scripts/setup-github-deploy.sh
+check "setup updates the custom role that exists" called "role definition update"
+check "setup does not create a second custom role" not called "role definition create"
+
+FAKE_BROKEN_IDENTITY="$BACKEND_ID" run ./scripts/setup-github-deploy.sh
+check "setup stops when an identity lookup fails for another reason" test "$rc" -ne 0
+check "that failure creates no identity" not called "identity create"
+
+FAKE_SECRETS="OPENAI_API_KEY,SQL_SERVER" run ./scripts/setup-github-deploy.sh
+check "setup names the missing environment secrets" \
+  bash -c "grep -q 'environment secret missing: GOOGLE_PLACES_API_KEY' '$LOG.out' && grep -q 'environment secret missing: SQL_DATABASE' '$LOG.out'"
+check "setup does not name an environment secret that is set" not printed "missing: OPENAI_API_KEY"
+check "setup never sets a key or a SQL name" \
+  bash -c "! grep -q -E 'secret set (GOOGLE_PLACES_API_KEY|OPENAI_API_KEY|SQL_SERVER|SQL_DATABASE)' '$LOG.gh'"
+
+FAKE_SECRETS="GOOGLE_PLACES_API_KEY,OPENAI_API_KEY,SQL_SERVER,SQL_DATABASE" run ./scripts/setup-github-deploy.sh
+check "setup stays quiet when all four environment secrets exist" not printed "environment secret missing"
 
 [ "$failures" -eq 0 ] && echo "deploy script tests: all passed" || echo "deploy script tests: $failures failed"
 exit "$failures"
