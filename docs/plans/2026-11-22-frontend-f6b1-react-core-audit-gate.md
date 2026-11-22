@@ -1,7 +1,7 @@
 # Frontend F6b-1: react-core, scoped zod config, audit gate
 
 Ticket: RR-65 (umbrella RR-62, RR-43). Repo: `restaurant-researcher-app`. Tier: non-trivial, specialist approval.
-Spec: `docs/specs/2026-11-22-frontend-f6b-copilotkit-client.md`. Status: approved by the specialist, 2026-11-22.
+Spec: `docs/specs/2026-11-22-frontend-f6b-copilotkit-client.md`. Status: done (PR #61).
 Diagram source: `docs/plans/diagrams/2026-11-22-frontend-f6b1-react-core-audit-gate.mmd`.
 
 ## TL;DR
