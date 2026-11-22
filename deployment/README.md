@@ -21,7 +21,7 @@ The app scales to zero, so the first request after idle takes about 15-40 second
 | What changed | Run (from the repo root) |
 |---|---|
 | Code | The **Deploy** workflow on GitHub (below); `./scripts/ship.sh` is the laptop fallback (builds, pushes, rolls the app; refuses a dirty tree) |
-| Infra (`infra/main.bicep`) | `./infra/deploy.sh [sha]` with the four variables set (see Infra deploy); each app keeps the tag it runs now unless you pass a SHA |
+| Infra (`infra/main.bicep`) | The **Deploy infra** workflow on GitHub (see Infra deploy); each app keeps the tag it runs now unless you pass a SHA |
 | Only build and push an image | `./scripts/build-push.sh [sha]` (skips an image that exists) |
 | Roll to an already-pushed image, including a rollback | `./scripts/redeploy.sh [sha]` |
 | Approve a new user | `./scripts/approve-user.sh <email>` |
@@ -51,8 +51,10 @@ The Easy Auth client secret expires; see [expirations.md](expirations.md).
 
 ## Infra deploy
 
-`./infra/deploy.sh [sha]` applies `infra/main.bicep`. It reads `GOOGLE_PLACES_API_KEY`, `OPENAI_API_KEY`, `SQL_SERVER` and `SQL_DATABASE` from the environment only, and stops naming a variable that is missing. The keys reach `az` through a private temp file that is removed on exit, never the command line. It prints the three tags it will use. It does not check the registry: a tag whose image does not exist fails the new revision, and the running revision keeps serving.
+Production infra changes when the owner starts **Deploy infra** (Actions tab, or `gh workflow run deploy-infra.yml --ref main`); it runs `infra/deploy.sh [sha]`, which applies `infra/main.bicep`. It reads `GOOGLE_PLACES_API_KEY`, `OPENAI_API_KEY`, `SQL_SERVER` and `SQL_DATABASE` from the environment only, and stops naming a variable that is missing. The keys reach `az` through a private temp file that is removed on exit, never the command line. It prints the three tags it will use. It does not check the registry: a tag whose image does not exist fails the new revision, and the running revision keeps serving.
 
 Without an argument each app keeps the tag it runs now. With a full SHA all three apps get that tag; the first run needs it, because the api and agent apps do not exist yet to read a tag from. Run **Deploy** for that SHA first, so the images exist.
 
 First rollout, in order: `setup-github-deploy.sh` (identities), **Deploy** (builds the images), the infra deploy (creates the api and agent apps), `setup-github-deploy.sh` again (the deploy identity's roles on the new apps), **Deploy** again (rolls all three apps and locks the tags).
+
+The workflow installs a pinned Bicep CLI first (`az bicep install --version`, in `deploy-infra.yml`; to move it, pin a Bicep release at least 14 days old and change that one line). It logs in as its own identity (repo secret `AZURE_INFRA_CLIENT_ID`, set by `setup-github-deploy.sh`), which can start deployments and change this project's Container Apps but cannot assign roles or create identities. The run waits for the owner's approval in the `production` environment, like **Deploy**, and only starts from `main`. It reads four secrets of the `production` environment, set by the owner with `gh secret set <name> --env production -R Fredheda/restaurant-researcher-app` (the value comes from a hidden prompt): `GOOGLE_PLACES_API_KEY`, `OPENAI_API_KEY`, `SQL_SERVER`, `SQL_DATABASE`. The SQL names are secrets so that public run logs mask them. Leave the SHA empty to keep each app's tag; give a full SHA on `main` for the first run. **Deploy** and **Deploy infra** share one queue; GitHub keeps only the newest waiting run per queue, so start the second after the first has finished.

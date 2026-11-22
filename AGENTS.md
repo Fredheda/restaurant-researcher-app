@@ -40,7 +40,7 @@ Which role needs which, meaning and defaults: `docs/development.md`. The fronten
 
 ## Deployment
 
-Code deploys with the manual **Deploy** workflow (`main` only; full SHA or head of `main`; rollback = older SHA). `./scripts/ship.sh` is the laptop fallback and refuses a dirty tree. `./infra/deploy.sh [sha]` deploys infra; it needs `GOOGLE_PLACES_API_KEY`, `OPENAI_API_KEY`, `SQL_SERVER` and `SQL_DATABASE` in the environment. A merge runs nothing. Every run waits for approval from the `production` reviewer. How to run: `deployment/README.md`.
+Code deploys with the manual **Deploy** workflow (`main` only; full SHA or head of `main`; rollback = older SHA). `./scripts/ship.sh` is the laptop fallback and refuses a dirty tree. Infra deploys with the manual **Deploy infra** workflow (same `main`-only and approval rules; own identity; the four values `GOOGLE_PLACES_API_KEY`, `OPENAI_API_KEY`, `SQL_SERVER`, `SQL_DATABASE` are `production` environment secrets), which runs `./infra/deploy.sh [sha]`. A merge runs nothing. Every run waits for approval from the `production` reviewer. How to run: `deployment/README.md`.
 
 ## Security, Dependabot, review
 
