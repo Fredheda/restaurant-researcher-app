@@ -1,41 +1,7 @@
 #!/usr/bin/env bash
-# One-time (idempotent) setup so GitHub Actions can build and deploy this
-# project with no stored secrets, using OpenID Connect (workload identity
-# federation).
-#
-# What it does:
-#   1. Creates two user-assigned managed identities in rg-chatbot:
-#        id-restaurant-researcher-gh-build   pushes images (the build step of
-#                                            the manual "Deploy" workflow)
-#        id-restaurant-researcher-gh-deploy  rolls the container app (the
-#                                            deploy step of the same workflow)
-#   2. Grants each only what it needs:
-#        build:  AcrPush + Container Registry Tasks Contributor on the registry
-#        deploy: AcrPush on the registry (to lock/unlock deployed tags — note
-#                that this also lets it push images; the registry is in
-#                legacy permission mode, which cannot scope pushes by
-#                repository), Container Apps Contributor on each app that
-#                exists (an app not created yet is skipped; re-run after
-#                infra/deploy.sh adds it), and Managed Identity Operator on
-#                the app's AcrPull identity (updating an app that uses it
-#                needs assign/action)
-#   3. Adds one federated credential to each identity (subject taken from the
-#      repo's OIDC settings; a credential with a stale subject is replaced),
-#      both trusting only the job that runs in the `production` environment
-#      (the Deploy workflow logs in twice, as build and then as deploy).
-#   4. Creates the `production` GitHub environment, restricted to jobs running
-#      on the main branch (a branch author cannot edit their way around it)
-#      and gated by the repo owner as required reviewer (every deploy waits
-#      for his approval in GitHub), and stores the Azure IDs the workflows
-#      read as repo SECRETS:
-#      AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, AZURE_BUILD_CLIENT_ID,
-#      AZURE_DEPLOY_CLIENT_ID. They are identifiers, not credentials; a secret
-#      is used so GitHub masks the value in run logs.
-#
-# Needs the signed-in user to be able to create identities, assign roles, and
-# administer the GitHub repo. Auth is the live `az login` and `gh auth`
-# sessions; nothing secret is written anywhere. Federated credentials do not
-# expire.
+# One-time (idempotent) setup of the identities, roles, federated credentials,
+# `production` environment and repo secrets the workflows use. Needs the owner's
+# `az login` and `gh auth`; what it grants and why: deployment/README.md.
 #
 # Usage: ./scripts/setup-github-deploy.sh
 set -euo pipefail
@@ -47,21 +13,101 @@ GH_REPO=Fredheda/restaurant-researcher-app
 LOCATION=westeurope
 BUILD_ID=id-restaurant-researcher-gh-build
 DEPLOY_ID=id-restaurant-researcher-gh-deploy
+INFRA_ID=id-restaurant-researcher-gh-infra
 PULL_ID=id-restaurant-researcher-acrpull
+BACKEND_ID=id-restaurant-researcher-backend
 ISSUER=https://token.actions.githubusercontent.com
+INFRA_ROLE="Restaurant Researcher Infra Deployer"
+INFRA_ROLE_DESCRIPTION="Runs the Deploy infra workflow: deployments and Container Apps in this resource group, no role assignment, no identity creation."
+ENVIRONMENT_SECRETS=(GOOGLE_PLACES_API_KEY OPENAI_API_KEY SQL_SERVER SQL_DATABASE)
+
+# Explicit list, no wildcard: a compromised infra run must not be able to grant
+# itself access, create identities or add federated credentials, so nothing
+# under Microsoft.Authorization and no identity write belongs here. Attaching
+# the app identities is a separate Managed Identity Operator assignment each.
+INFRA_ROLE_ACTIONS=(
+  Microsoft.Resources/deployments/read
+  Microsoft.Resources/deployments/write
+  Microsoft.Resources/deployments/validate/action
+  Microsoft.Resources/deployments/operations/read
+  Microsoft.Resources/deployments/operationstatuses/read
+  Microsoft.Resources/subscriptions/resourceGroups/read
+  Microsoft.App/containerApps/read
+  Microsoft.App/containerApps/write
+  Microsoft.App/containerApps/revisions/read
+  Microsoft.App/managedEnvironments/read
+  Microsoft.App/managedEnvironments/join/action
+  Microsoft.App/managedEnvironments/managedCertificates/read
+  Microsoft.ManagedIdentity/userAssignedIdentities/read
+)
 
 TENANT_ID=$(az account show --query tenantId -o tsv)
 SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+RG_SCOPE=/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RG
 echo "Subscription $SUBSCRIPTION_ID, repo $GH_REPO"
 
+ROLE_FILE=$(mktemp "${TMPDIR:-/tmp}/rr-infra-role.XXXXXX")
+trap 'rm -f "$ROLE_FILE"' EXIT
+
 ensure_identity() {
-  local name=$1
-  if az identity show -g "$RG" -n "$name" -o none 2>/dev/null; then
+  local name=$1 err
+  if err=$(az identity show -g "$RG" -n "$name" -o none 2>&1 >/dev/null); then
     echo "identity $name: exists" >&2
-  else
-    az identity create -g "$RG" -n "$name" -l "$LOCATION" -o none
-    echo "identity $name: created" >&2
+    return
   fi
+  case "$err" in
+    *ResourceNotFound*|*"was not found"*|*"could not be found"*) ;;
+    *)
+      echo "ERROR: could not look up identity $name: $err" >&2
+      exit 1
+      ;;
+  esac
+  az identity create -g "$RG" -n "$name" -l "$LOCATION" -o none
+  echo "identity $name: created" >&2
+}
+
+identity_field() {
+  az identity show -g "$RG" -n "$1" --query "$2" -o tsv
+}
+
+role_definition_json() {
+  local action separator=""
+  printf '{\n  "Name": "%s",\n  "IsCustom": true,\n  "Description": "%s",\n  "Actions": [\n' \
+    "$INFRA_ROLE" "$INFRA_ROLE_DESCRIPTION"
+  for action in "${INFRA_ROLE_ACTIONS[@]}"; do
+    printf '%s    "%s"' "$separator" "$action"
+    separator=$',\n'
+  done
+  printf '\n  ],\n  "NotActions": [],\n  "DataActions": [],\n  "NotDataActions": [],\n  "AssignableScopes": ["%s"]\n}\n' \
+    "$RG_SCOPE"
+}
+
+ensure_infra_role() {
+  local existing
+  role_definition_json >"$ROLE_FILE"
+  existing=$(az role definition list --name "$INFRA_ROLE" --custom-role-only true \
+    --scope "$RG_SCOPE" --query "length(@)" -o tsv)
+  if [ "$existing" -gt 0 ]; then
+    az role definition update --role-definition "$ROLE_FILE" -o none
+    echo "custom role $INFRA_ROLE: updated"
+  else
+    az role definition create --role-definition "$ROLE_FILE" -o none
+    echo "custom role $INFRA_ROLE: created"
+  fi
+}
+
+report_missing_environment_secrets() {
+  local listing present name
+  if ! listing=$(gh secret list --env production -R "$GH_REPO"); then
+    echo "WARNING: could not list the production environment secrets." >&2
+    return
+  fi
+  present=$(cut -f1 <<<"$listing")
+  for name in "${ENVIRONMENT_SECRETS[@]}"; do
+    if ! grep -qx "$name" <<<"$present"; then
+      echo "environment secret missing: $name (set it yourself: gh secret set $name --env production -R $GH_REPO)"
+    fi
+  done
 }
 
 # Role assignment by object id + principal type, so a just-created identity
@@ -93,25 +139,40 @@ ensure_federated_credential() {
   echo "federated credential $identity/$name: created ($subject)"
 }
 
-ensure_identity "$BUILD_ID"
-ensure_identity "$DEPLOY_ID"
-BUILD_PRINCIPAL=$(az identity show -g "$RG" -n "$BUILD_ID" --query principalId -o tsv)
-BUILD_CLIENT=$(az identity show -g "$RG" -n "$BUILD_ID" --query clientId -o tsv)
-DEPLOY_PRINCIPAL=$(az identity show -g "$RG" -n "$DEPLOY_ID" --query principalId -o tsv)
-DEPLOY_CLIENT=$(az identity show -g "$RG" -n "$DEPLOY_ID" --query clientId -o tsv)
+for identity in "$BUILD_ID" "$DEPLOY_ID" "$INFRA_ID" "$PULL_ID" "$BACKEND_ID"; do
+  ensure_identity "$identity"
+done
+BUILD_PRINCIPAL=$(identity_field "$BUILD_ID" principalId)
+BUILD_CLIENT=$(identity_field "$BUILD_ID" clientId)
+DEPLOY_PRINCIPAL=$(identity_field "$DEPLOY_ID" principalId)
+DEPLOY_CLIENT=$(identity_field "$DEPLOY_ID" clientId)
+INFRA_PRINCIPAL=$(identity_field "$INFRA_ID" principalId)
+INFRA_CLIENT=$(identity_field "$INFRA_ID" clientId)
+PULL_PRINCIPAL=$(identity_field "$PULL_ID" principalId)
+BACKEND_PRINCIPAL=$(identity_field "$BACKEND_ID" principalId)
 
 ACR_ID=$(az acr show -n "$ACR" --query id -o tsv)
-PULL_ID_RESOURCE=$(az identity show -g "$RG" -n "$PULL_ID" --query id -o tsv)
+PULL_ID_RESOURCE=$(identity_field "$PULL_ID" id)
+BACKEND_ID_RESOURCE=$(identity_field "$BACKEND_ID" id)
 
 ensure_role "$BUILD_PRINCIPAL" "AcrPush" "$ACR_ID"
 ensure_role "$BUILD_PRINCIPAL" "Container Registry Tasks Contributor" "$ACR_ID"
 
+ensure_role "$PULL_PRINCIPAL" "AcrPull" "$ACR_ID"
+ensure_role "$BACKEND_PRINCIPAL" "AcrPull" "$ACR_ID"
+
+ensure_infra_role
+ensure_role "$INFRA_PRINCIPAL" "$INFRA_ROLE" "$RG_SCOPE"
+ensure_role "$INFRA_PRINCIPAL" "Managed Identity Operator" "$PULL_ID_RESOURCE"
+ensure_role "$INFRA_PRINCIPAL" "Managed Identity Operator" "$BACKEND_ID_RESOURCE"
+
 ensure_role "$DEPLOY_PRINCIPAL" "AcrPush" "$ACR_ID"
 ensure_role "$DEPLOY_PRINCIPAL" "Managed Identity Operator" "$PULL_ID_RESOURCE"
+ensure_role "$DEPLOY_PRINCIPAL" "Managed Identity Operator" "$BACKEND_ID_RESOURCE"
 for entry in "${APPS[@]}"; do
   IFS='|' read -r app _ <<<"$entry"
   if ! app_exists "$app"; then
-    echo "app $app: not created yet, skipped (re-run after infra/deploy.sh)"
+    echo "app $app: not created yet, skipped (re-run after Deploy infra)"
     continue
   fi
   app_id=$(az containerapp show -n "$app" -g "$RG" --query id -o tsv)
@@ -132,6 +193,7 @@ echo "OIDC subject: $SUBJECT"
 
 ensure_federated_credential "$BUILD_ID" github-production "$SUBJECT"
 ensure_federated_credential "$DEPLOY_ID" github-production "$SUBJECT"
+ensure_federated_credential "$INFRA_ID" github-production "$SUBJECT"
 
 # The identities trust any job that runs in the `production` environment,
 # whatever branch it runs on, and the `main`-only check inside deploy.yml is in
@@ -169,5 +231,7 @@ gh secret set AZURE_TENANT_ID --body "$TENANT_ID" -R "$GH_REPO"
 gh secret set AZURE_SUBSCRIPTION_ID --body "$SUBSCRIPTION_ID" -R "$GH_REPO"
 gh secret set AZURE_BUILD_CLIENT_ID --body "$BUILD_CLIENT" -R "$GH_REPO"
 gh secret set AZURE_DEPLOY_CLIENT_ID --body "$DEPLOY_CLIENT" -R "$GH_REPO"
+gh secret set AZURE_INFRA_CLIENT_ID --body "$INFRA_CLIENT" -R "$GH_REPO"
 echo "repo secrets: set"
+report_missing_environment_secrets
 echo "Done. Re-running changes nothing."
