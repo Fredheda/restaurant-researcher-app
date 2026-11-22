@@ -33,7 +33,7 @@ cd backend && poetry install && poetry run pytest -q && poetry run ruff check . 
 ./scripts/ci-local.sh                                     # all of the above in CI order
 ```
 
-- Node 24 with npm 12.2.2, in CI and in `frontend/Dockerfile`. `next-env.d.ts` and `*.tsbuildinfo` are generated and gitignored.
+- Node 26 with npm 12.2.2, in CI and in `frontend/Dockerfile`. `next-env.d.ts` and `*.tsbuildinfo` are generated and gitignored.
 - CI (`.github/workflows/ci.yml`) runs on pull requests only, never on a push to `main`. A draft PR runs the light jobs (`changes`, `backend`, `checks`: deploy-script tests, supply-chain guard, vitest, lint, `tsc`); `build` (production build plus the browser tests) and the AI review run once the PR is ready. A docs-only PR (`*.md` or `docs/`) skips all three. CI never builds an image.
 - **Merging:** the owner merges, except the bot and docs classes in the workspace `CLAUDE.md` (Git), which the coordinator merges.
 - Tests: backend tests are offline, every external client is a fake passed to `create_app`. Browser tests (`frontend/e2e/`) run against the production build with no network and start a fake api (`frontend/e2e/fake-api.mjs`): the web server under test gets `API_URL` pointing at it and the tests send the sign-in header, so the proxy's principal path is the one exercised; every locator lives in `frontend/e2e/selectors.ts` and ESLint rejects `.locator()` in specs. A new test must catch a bug no other test catches.

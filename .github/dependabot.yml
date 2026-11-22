@@ -66,7 +66,7 @@ updates:
       docker-minor-patch:
         patterns: ["*"]
         update-types: [minor, patch]
-    # Stay on Node 24 LTS (the Dockerfile and CI both use it); patches still
+    # Stay on Node 26 LTS (the Dockerfile and CI both use it); patches still
     # arrive. Odd Node majors are not LTS.
     ignore:
       - dependency-name: node

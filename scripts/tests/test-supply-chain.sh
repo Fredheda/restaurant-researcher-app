@@ -3,7 +3,8 @@
 #   1. a 14-day install cooldown for npm and Poetry, with no exclusions;
 #   2. no pip or pipx install from a version range;
 #   3. every GitHub Action pinned by commit, with its version as a comment;
-#   4. every Docker image pinned by digest, one digest per base image.
+#   4. every Docker image pinned by digest, one digest per base image;
+#   5. one Node major in frontend/Dockerfile, every CI setup-node and @types/node.
 # To bump Poetry: change the version in .github/workflows/ci.yml and
 # backend/Dockerfile together (the "one Poetry version" check fails when they differ).
 #
@@ -88,6 +89,19 @@ split_digests() {
 }
 check "every image reference carries its digest" none unpinned_images
 check "one digest per base image" none split_digests
+
+# 5. One Node major everywhere.
+node_majors() {
+  grep -hoE '^FROM[[:space:]]+node:[0-9]+' frontend/Dockerfile | grep -oE '[0-9]+$'
+  grep -rhoE 'node-version:[[:space:]]*[0-9]+' .github/workflows | grep -oE '[0-9]+$'
+  grep -oE '"@types/node":[[:space:]]*"\^[0-9]+' frontend/package.json | grep -oE '[0-9]+$'
+}
+split_node_majors() {
+  local majors
+  majors=$(node_majors | sort -u)
+  [ "$(echo "$majors" | wc -l)" -gt 1 ] && echo "Node majors:" $majors
+}
+check "one Node major in the image, CI and @types/node" none split_node_majors
 
 if [ "$failures" -gt 0 ]; then
   echo "test-supply-chain: $failures failed"

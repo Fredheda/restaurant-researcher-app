@@ -25,8 +25,8 @@ fi
 
 cd frontend
 
-# CI installs npm 12.2.2 on Node 24 (see frontend/Dockerfile).
-echo "node $(node -v), npm $(npm -v) (CI: Node 24, npm 12.2.2)"
+# CI installs npm 12.2.2 on Node 26 (see frontend/Dockerfile).
+echo "node $(node -v), npm $(npm -v) (CI: Node 26, npm 12.2.2)"
 
 npm ci --prefer-offline
 npm test

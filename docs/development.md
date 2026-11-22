@@ -4,7 +4,7 @@ Run the frontend from `frontend/` and the backend from `backend/`. The header se
 
 ## Prerequisites
 
-- Node 24 with npm 12.2.2. The Docker image and CI both use these versions (`npm install -g npm@12.2.2`).
+- Node 26 with npm 12.2.2. The Docker image and CI both use these versions (`npm install -g npm@12.2.2`).
 - For the backend: Python 3.13 and Poetry 2.
 
 ## Backend
@@ -87,6 +87,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs the same checks on every pull r
 - **A security fix younger than 14 days** is taken only on the owner's yes for that package and version, with a one-off command and no committed exclusion: `npm install <package>@<version> --min-release-age-exclude=<package>` or `POETRY_SOLVER_MIN_RELEASE_AGE_EXCLUDE=<package> poetry update <package>`.
 - **Exact pins:** Poetry is pinned in `.github/workflows/ci.yml` and `backend/Dockerfile` (bump both together), pip in `backend/Dockerfile`. Only the image install also applies the 14-day window to Poetry's own dependencies. GitHub Actions are pinned by commit with the release as a comment; Dependabot updates them.
 - **Docker images:** every `FROM` line and every `docker run` image in a workflow carries its digest after the tag (`image:tag@sha256:<64 hex>`), so a moved tag cannot change what runs. Dependabot bumps the `FROM` digests. The gitleaks and actionlint images in `.github/workflows/security.yml` are bumped by hand: look up the new tag's digest (`docker buildx imagetools inspect <image>:<tag> --format '{{.Manifest.Digest}}'`) and edit that one line.
+- **One Node major:** the `frontend/Dockerfile` stages, every `node-version` in the workflows and the `@types/node` range use the same Node major; bump them together.
 - **Override:** `frontend/package.json` overrides `iconv-lite` to 0.7.3: 0.6.3 (pulled in by `jsdom` through `whatwg-encoding`) ships an `.idea` folder that a sandboxed `npm ci` cannot write. Drop the override when `whatwg-encoding` no longer pins 0.6.3.
 - `scripts/tests/test-supply-chain.sh` fails the PR when one of these rules is broken.
 
