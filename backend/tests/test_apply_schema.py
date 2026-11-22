@@ -324,6 +324,12 @@ def test_two_flags_or_an_unknown_flag_exit_2(argv: list[str]) -> None:
 def test_verify_queries_are_read_only() -> None:
     for query in (DATABASE_NAME_QUERY, TABLE_COUNTS_QUERY, SCHEMA_GRANTS_QUERY):
         assert query.startswith("SELECT")
+        assert ";" not in query
+        assert not re.search(
+            r"\b(INSERT|UPDATE|DELETE|MERGE|ALTER|CREATE|DROP|GRANT|REVOKE|DENY|EXEC)\b",
+            query,
+            re.IGNORECASE,
+        )
 
 
 def test_verify_prints_the_connection_first_and_passes_with_all_three_grants() -> None:
