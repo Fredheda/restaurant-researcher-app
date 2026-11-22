@@ -149,7 +149,7 @@ called() { grep -q -- "$1" "$LOG"; }
 count() { grep -c -- "$1" "$LOG"; }
 gh_called() { grep -q -- "$1" "$LOG.gh"; }
 gh_body_has() { grep -q -- "$1" "$LOG.gh-body"; }
-check() { # check <name> <command...>
+check() {
   local name=$1
   shift
   if "$@"; then pass "$name"; else fail "$name"; fi

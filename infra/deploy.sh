@@ -1,18 +1,11 @@
 #!/usr/bin/env bash
-# Provision (or update) the Container Apps environment + the web, api and agent
-# apps from infra/main.bicep. Idempotent — re-run to roll config changes.
-#
 # Usage: ./infra/deploy.sh [image-tag]
-#   image-tag defaults to the tag each app runs now, so an infra run never
-#   rolls an app to an image that was not deployed (a Bicep run from a
-#   checkout at a different commit would otherwise do that). On the very first
-#   deploy there are no apps yet: pass the tag explicitly, after Deploy built
-#   its images. The script does not check the registry: a tag without an image
-#   fails the new revision while the running one keeps serving.
-#
-# Reads GOOGLE_PLACES_API_KEY, OPENAI_API_KEY, SQL_SERVER and SQL_DATABASE from
-# the environment only. The keys reach az through a private temp file, never
-# the command line.
+#   Without a tag each app keeps the tag it runs now: a Bicep run from a
+#   checkout at a different commit must not roll an app to an image that was
+#   not deployed. The first run, with no apps yet, needs the tag.
+#   No registry check (the infra identity cannot read images): a tag without
+#   an image fails the new revision while the running one keeps serving.
+# The keys reach az through a private temp file, never the command line.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 # shellcheck source=../scripts/lib/images.sh

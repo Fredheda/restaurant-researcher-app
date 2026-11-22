@@ -1,6 +1,3 @@
-// The web, api and agent Container Apps of restaurant-researcher-app, in the
-// existing rg-chatbot resource group.
-//
 // Only Container Apps are created here: the identity that deploys this file
 // cannot write identities, role assignments or the environment.
 // scripts/setup-github-deploy.sh creates both app identities and their
@@ -9,8 +6,6 @@
 // Easy Auth is intentionally NOT here — per-user role assignment can't be
 // expressed in Bicep, so it stays in scripts/setup-easyauth.sh +
 // scripts/approve-user.sh.
-//
-// Deploy with infra/deploy.sh.
 
 @description('Region for all resources. Defaults to the resource group location.')
 param location string = resourceGroup().location
@@ -156,12 +151,8 @@ resource frontend 'Microsoft.App/containerApps@2025-01-01' = {
         external: true
         targetPort: 3000
         transport: 'auto'
-        // ARM's PUT on this Container App treats the whole `ingress` object
-        // as authoritative, so any redeploy that omits customDomains wipes
-        // the binding. restaurants.frederikheda.com was originally bound
-        // imperatively (outside Bicep, via `az containerapp hostname bind`);
-        // declaring it here makes every future deploy preserve it instead
-        // of resetting it.
+        // ARM treats `ingress` as authoritative: a deploy that omits
+        // customDomains wipes the binding.
         customDomains: [
           {
             name: 'restaurants.frederikheda.com'
