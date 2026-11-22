@@ -40,7 +40,7 @@ Which role needs which, meaning and defaults: `docs/development.md`. The fronten
 
 ## Deployment
 
-Code deploys with the manual **Deploy** workflow (`main` only; full SHA or head of `main`; rollback = older SHA). `./scripts/ship.sh` is the laptop fallback and refuses a dirty tree. `./infra/deploy.sh` deploys infra (laptop only). A merge runs nothing. Every run waits for approval from the `production` reviewer. How to run: `deployment/README.md`.
+Code deploys with the manual **Deploy** workflow (`main` only; full SHA or head of `main`; rollback = older SHA). `./scripts/ship.sh` is the laptop fallback and refuses a dirty tree. `./infra/deploy.sh [sha]` deploys infra; it needs `GOOGLE_PLACES_API_KEY`, `OPENAI_API_KEY`, `SQL_SERVER` and `SQL_DATABASE` in the environment. A merge runs nothing. Every run waits for approval from the `production` reviewer. How to run: `deployment/README.md`.
 
 ## Security, Dependabot, review
 
@@ -51,7 +51,7 @@ Code deploys with the manual **Deploy** workflow (`main` only; full SHA or head 
 
 ## Gotchas
 
-- The backend apps are not deployed yet: the deploy scripts skip them until infra creates them. `deployment/README.md` covers the web app only.
+- The backend apps are not deployed yet: the deploy scripts skip them until the infra deploy creates them.
 - The agent id `restaurant_researcher` (`AGENT_NAME` in `backend/app/agent/server.py`) must match the web app's CopilotKit runtime route (`AGENT_ID` in `frontend/app/agent.ts`) and provider `agent` prop (the route exists, the provider does not yet).
 - `backend/sql/` scripts are idempotent and applied by hand by the owner; agents and the apps never run DDL.
 

@@ -35,9 +35,9 @@ Web app (read at runtime by `frontend/app/api/[...path]/route.ts` and `frontend/
 
 | Variable | Meaning |
 |---|---|
-| `API_URL` | origin of the api app (a path in it is ignored), for example `http://127.0.0.1:8000`. Unset or not http(s): `/api/*` answers 503. Deployed: the api's internal **https** address (with `allowInsecure` off, an `http://` call inside the environment is answered with a redirect, which the proxy turns into 502), set by the backend rollout |
+| `API_URL` | origin of the api app (a path in it is ignored), for example `http://127.0.0.1:8000`. Unset or not http(s): `/api/*` answers 503. Deployed: the api's internal **https** address (with `allowInsecure` off, an `http://` call inside the environment is answered with a redirect, which the proxy turns into 502), set by `infra/main.bicep` |
 | `ALLOW_ANONYMOUS` | `true` lets a request without Easy Auth headers through, only when `API_URL` is loopback (local runs, where there is no Easy Auth). Never set it in a deployed app: it has no effect there, and the proxy answers 401 without a signed-in principal. It applies to the api proxy only: `/api/copilotkit` has no local switch, so a local run of the chat needs the principal headers added by a forwarder on 127.0.0.1 |
-| `AGENT_URL` | origin of the agent app (a path in it is ignored), for example `http://127.0.0.1:8001`. Unset or not http(s): `/api/copilotkit` answers 503. Deployed: the agent's internal **https** address, set by the backend rollout. The runtime keeps conversations in memory (at most 200 threads, 20 runs per thread, 64 MiB): they start fresh after idle, and the web app must stay at one replica. The 200 threads are one budget shared by all users: one approved user can evict another's conversation |
+| `AGENT_URL` | origin of the agent app (a path in it is ignored), for example `http://127.0.0.1:8001`. Unset or not http(s): `/api/copilotkit` answers 503. Deployed: the agent's internal **https** address, set by `infra/main.bicep`. The runtime keeps conversations in memory (at most 200 threads, 20 runs per thread, 64 MiB): they start fresh after idle, and the web app must stay at one replica. The 200 threads are one budget shared by all users: one approved user can evict another's conversation |
 
 ```bash
 APP_ROLE=api APP_ENV=local GOOGLE_PLACES_API_KEY=... poetry run uvicorn app.main:app --port 8000
