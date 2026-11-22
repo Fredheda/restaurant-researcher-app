@@ -55,6 +55,8 @@ Code deploys with the manual **Deploy** workflow (`main` only; full SHA or head 
 - The agent id `restaurant_researcher` (`AGENT_NAME` in `backend/app/agent/server.py`) must match the web app's CopilotKit runtime route (`AGENT_ID` in `frontend/app/agent.ts`) and provider `agent` prop (the route exists, the provider does not yet).
 - `backend/sql/` scripts are idempotent and applied by hand by the owner; agents and the apps never run DDL.
 
+Not yet enforced here: `scripts/rules/` and the CI job `rules` arrive with RR-64; the rules sentences in the shared block below describe that target.
+
 <!-- shared:start -->
 ## Shared rules (identical in every repo; never edit here)
 

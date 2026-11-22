@@ -33,7 +33,7 @@ Non-goals: frontend tools (`show_places`, `open_place`) and tool-call timings fr
 
 ### PR split
 
-- **F6b-1 (RR-62a), dependencies and audit gate.** `frontend/package.json` and lockfile: add `@copilotkit/react-core` 1.85.0 exact; remove the direct `zod` dependency and the global `zod: "$zod"` override; add the two scoped overrides. New `scripts/audit-gate.mjs` (Node, no dependencies) and `scripts/tests/test-audit-gate.sh` with recorded audit JSON fixtures. `security.yml`: the weekly `npm-audit` job runs the gate instead of `npm audit --omit=dev --audit-level=high`. `ci-local.sh` and the `checks` job run the gate's test. Docs: `docs/development.md` (overrides bullet replaced, the exception explained), `CLAUDE.md` (security line). Touches `.github`: owner merge. `react-core` is installed but unused in this PR (it says so).
+- **F6b-1 (RR-62a), dependencies and audit gate.** `frontend/package.json` and lockfile: add `@copilotkit/react-core` 1.85.0 exact; remove the direct `zod` dependency and the global `zod: "$zod"` override; add the two scoped overrides. New `scripts/audit-gate.mjs` (Node, no dependencies) and `scripts/tests/test-audit-gate.sh` with recorded audit JSON fixtures. `security.yml`: the weekly `npm-audit` job runs the gate instead of `npm audit --omit=dev --audit-level=high`. `ci-local.sh` and the `checks` job run the gate's test. Docs: `docs/development.md` (overrides bullet replaced, the exception explained), `AGENTS.md` (security line). Touches `.github`: owner merge. `react-core` is installed but unused in this PR (it says so).
 - **F6b-2 (RR-62b), the client.** Provider, chat on the agent, stub removal, tests, docs. Planned after F6b-1 merges (the weekly audit must never be red between the two).
 
 ### The audit gate (F6b-1)
@@ -73,7 +73,7 @@ The matching GitHub Dependabot alert for zod stays open until the owner dismisse
 
 ### Docs (F6b-2)
 
-`README.md` (lines 16, 26, 27, 32: the diagram's "Stub responder" and "Demo place fixtures" nodes become the route and the agent; the prose says the chat talks to the agent through `/api/copilotkit`), `CLAUDE.md` (frontend bullet: the chat no longer answers from fixtures; gotcha on the provider `agent` prop: both ends exist), `docs/development.md` (lines 3 and 61: the "Fogo de Chão" chat example goes; a local chat run needs the agent app on `AGENT_URL` and the principal headers injected by a forwarder on 127.0.0.1, as in the RR #50 run). `deployment/README.md` line 3 is rewritten by the RR-34 spec; F6b leaves it out of its list.
+`README.md` (lines 16, 26, 27, 32: the diagram's "Stub responder" and "Demo place fixtures" nodes become the route and the agent; the prose says the chat talks to the agent through `/api/copilotkit`), `AGENTS.md` (frontend bullet: the chat no longer answers from fixtures; gotcha on the provider `agent` prop: both ends exist), `docs/development.md` (lines 3 and 61: the "Fogo de Chão" chat example goes; a local chat run needs the agent app on `AGENT_URL` and the principal headers injected by a forwarder on 127.0.0.1, as in the RR #50 run). `deployment/README.md` line 3 is rewritten by the RR-34 spec; F6b leaves it out of its list.
 
 ### Cleanup commit (PAIR-46, owner 572, aggressive removal)
 
