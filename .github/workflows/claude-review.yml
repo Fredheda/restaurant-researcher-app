@@ -95,10 +95,10 @@ jobs:
             If you find no security issues, say "No security issues found."
             explicitly. Do not invent findings.
 
-            **PR size check (every PR).** Count the changed files and lines,
-            leaving out lockfiles, test fixtures and generated files
+            **PR size check (every PR).** Count the changed files and lines
+            the way the "Pull requests" rule in AGENTS.md defines them
             (`gh pr view --json files` gives per-file counts). If that is more
-            than about 20 changed files or about 5000 changed lines, or the PR
+            than its limits, or the PR
             mixes more than one concern, report it as a finding and suggest
             how to split it, one ticket per PR. This is advisory, not a
             failing check. Otherwise say so in one line
