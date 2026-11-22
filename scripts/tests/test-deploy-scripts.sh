@@ -13,6 +13,9 @@
 #   FAKE_BROKEN_IDENTITY comma list of identities whose `identity show` fails with another error
 #   FAKE_ROLE_EXISTS    1 when the custom role definition already exists
 #   FAKE_SECRETS        comma list of environment secret names `gh secret list` reports
+#   FAKE_FAIL_DEPLOY    any value: `az deployment group create` fails
+# A `deployment group create` call copies its `--parameters @file` to $FAKE_LOG.params
+# (with the file's mode and path in .params-mode and .params-path) before answering.
 #
 # Usage: ./scripts/tests/test-deploy-scripts.sh
 set -uo pipefail
@@ -40,6 +43,16 @@ case "$*" in
     exit 0 ;;
   "acr build"*)
     echo "$PWD $(test -f frontend/Dockerfile && test -f backend/Dockerfile && echo has-dockerfiles)" >> "$FAKE_LOG.build-dir"
+    exit 0 ;;
+  "deployment group create"*)
+    file=$(echo "$*" | sed -nE 's/.*--parameters @([^ ]+).*/\1/p')
+    if [ -n "$file" ]; then
+      cp "$file" "$FAKE_LOG.params"
+      python3 -c 'import os, sys; print(oct(os.stat(sys.argv[1]).st_mode & 0o777))' "$file" >"$FAKE_LOG.params-mode"
+      echo "$file" >"$FAKE_LOG.params-path"
+    fi
+    [ -n "${FAKE_FAIL_DEPLOY:-}" ] && exit 1
+    echo Succeeded
     exit 0 ;;
   "containerapp update"*)
     [ "${FAKE_FAIL_UPDATE:-}" = any ] && exit 1
@@ -257,6 +270,61 @@ check "wait-healthy fails on Failed" test "$rc" -eq 1
 
 FAKE_PROVISIONING=Provisioning run ./scripts/wait-healthy.sh 1 0
 check "wait-healthy times out" test "$rc" -eq 1
+
+# --- infra/deploy.sh ------------------------------------------------------
+
+THIRD=3333333333333333333333333333333333333333
+MARK_G=marker-google
+MARK_O=marker-openai
+export GOOGLE_PLACES_API_KEY=$MARK_G OPENAI_API_KEY=$MARK_O SQL_SERVER=sql.example.test SQL_DATABASE=db1
+
+for var in GOOGLE_PLACES_API_KEY OPENAI_API_KEY SQL_SERVER SQL_DATABASE; do
+  FAKE_IMAGES="$ALL_OLD" run env "$var=" ./infra/deploy.sh "$SHA"
+  check "deploy.sh stops when $var is empty" test "$rc" -eq 2
+  check "deploy.sh names $var" printed "$var"
+  check "deploy.sh without $var calls no az" test ! -s "$LOG"
+done
+
+run ./infra/deploy.sh abc
+check "deploy.sh rejects a tag that is not a full SHA" test "$rc" -eq 2
+check "that rejection deploys nothing" not called "deployment group"
+
+FAKE_IMAGES="$ALL_OLD" run ./infra/deploy.sh "$SHA"
+check "deploy.sh succeeds with an argument tag" test "$rc" -eq 0
+check "deploy.sh puts the argument tag on all three apps" \
+  called "webImageTag=$SHA apiImageTag=$SHA agentImageTag=$SHA"
+check "deploy.sh passes the SQL names" called "sqlServer=sql.example.test sqlDatabase=db1"
+check "deploy.sh makes no registry call" not called "acr "
+
+FAKE_IMAGES="$WEB_APP=$REG/$WEB:$OLD,$API_APP=$REG/$BACKEND:$OLDER,$AGENT_APP=$REG/$BACKEND:$THIRD" \
+  run ./infra/deploy.sh
+check "deploy.sh without an argument keeps each app's current tag" \
+  called "webImageTag=$OLD apiImageTag=$OLDER agentImageTag=$THIRD"
+check "deploy.sh prints the tags it will use" printed "web=$OLD api=$OLDER agent=$THIRD"
+
+FAKE_ABSENT="$API_APP" FAKE_IMAGES="$ALL_OLD" run ./infra/deploy.sh
+check "deploy.sh without an argument stops when an app does not exist" test "$rc" -eq 1
+check "that stop names the app" printed "$API_APP"
+check "that stop deploys nothing" not called "deployment group"
+
+FAKE_IMAGES="$ALL_OLD" run ./infra/deploy.sh "$SHA"
+check "no az argument carries a key" not grep -q -e "$MARK_G" -e "$MARK_O" "$LOG"
+check "no output carries a key" not grep -q -e "$MARK_G" -e "$MARK_O" "$LOG.out"
+check "the key file holds both keys under their parameter names" \
+  python3 -c 'import json, sys
+p = json.load(open(sys.argv[1]))["parameters"]
+assert p["googlePlacesKey"]["value"] == sys.argv[2] and p["openaiApiKey"]["value"] == sys.argv[3]' \
+  "$LOG.params" "$MARK_G" "$MARK_O"
+check "the key file is private to the owner" grep -qx 0o600 "$LOG.params-mode"
+
+GOOGLE_PLACES_API_KEY='a"b\c' FAKE_IMAGES="$ALL_OLD" run ./infra/deploy.sh "$SHA"
+check "a key with a quote and a backslash survives in the key file" \
+  python3 -c 'import json, sys
+assert json.load(open(sys.argv[1]))["parameters"]["googlePlacesKey"]["value"] == "a\"b\\c"' "$LOG.params"
+
+FAKE_FAIL_DEPLOY=1 FAKE_IMAGES="$ALL_OLD" run ./infra/deploy.sh "$SHA"
+check "deploy.sh fails when the deployment fails" test "$rc" -ne 0
+check "a failed deployment still removes the key file" test ! -e "$(cat "$LOG.params-path")"
 
 run ./scripts/setup-github-deploy.sh
 check "setup exits 0 against the fakes" test "$rc" -eq 0
