@@ -102,6 +102,15 @@ jobs:
             If you find no security issues, say "No security issues found."
             explicitly. Do not invent findings.
 
+            **PR size check (every PR).** Count the changed files and lines,
+            leaving out lockfiles, test fixtures and generated files
+            (`gh pr view --json files` gives per-file counts). If that is more
+            than about 20 changed files or about 5000 changed lines, or the PR
+            mixes more than one concern, report it as a finding and suggest
+            how to split it, one ticket per PR. This is advisory, not a
+            failing check. Otherwise say so in one line
+            ("Size: ok, N files, about N lines, one concern").
+
             **Verdict (last line, every review).** End with exactly one line.
             If no findings are open and the documentation is current, write
             `Verdict: ready to merge`. Otherwise write
