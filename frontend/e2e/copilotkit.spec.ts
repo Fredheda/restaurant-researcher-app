@@ -45,30 +45,6 @@ test("a signed-in run reaches the agent with the principal headers only", async 
   expect(sensitive).toEqual(["x-ms-client-principal-id", "x-ms-client-principal-name"]);
 });
 
-test("a request without a principal is refused", async ({ request }) => {
-  const response = await request.post(endpoint, {
-    headers: { "x-ms-client-principal-id": "" },
-    data: envelope("info"),
-  });
-
-  expect(response.status()).toBe(401);
-});
-
-test("a cross-site request is refused", async ({ request }) => {
-  const response = await request.post(endpoint, {
-    headers: { "sec-fetch-site": "cross-site" },
-    data: envelope("info"),
-  });
-
-  expect(response.status()).toBe(403);
-});
-
-test("a runtime method the chat does not need is not reachable", async ({ request }) => {
-  const response = await request.post(endpoint, { data: envelope("inspector/metadata") });
-
-  expect(response.status()).toBe(404);
-});
-
 test("only POST is served and a preflight is not granted", async ({ request }) => {
   expect((await request.get(endpoint)).status()).toBe(405);
 

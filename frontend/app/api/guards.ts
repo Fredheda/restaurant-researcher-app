@@ -1,5 +1,5 @@
-export const MAX_BODY_BYTES = 1_000_000;
-export const NO_STORE = { "cache-control": "no-store", "x-content-type-options": "nosniff" };
+const MAX_BODY_BYTES = 1_000_000;
+const NO_STORE = { "cache-control": "no-store", "x-content-type-options": "nosniff" };
 
 export function fail(status: number, error: string): Response {
   return Response.json({ error }, { status, headers: NO_STORE });

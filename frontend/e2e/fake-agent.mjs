@@ -19,8 +19,6 @@ function lastUserText(input) {
   return typeof content === "string" ? content : "";
 }
 
-const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
 const server = createServer((req, res) => {
   const url = new URL(req.url ?? "/", "http://127.0.0.1");
   if (req.method === "GET" && url.pathname === "/health") {
@@ -47,7 +45,6 @@ const server = createServer((req, res) => {
       res.writeHead(500).end("boom");
       return;
     }
-    if (question.includes("slow")) await wait(1500);
     res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-cache" });
     for (const event of events(input, `You asked: ${question}`)) {
       res.write(`data: ${JSON.stringify(event)}\n\n`);
