@@ -287,6 +287,7 @@ for wf in .github/workflows/deploy.yml "$INFRA_WF"; do
   check "$wf asks for id-token only in the job's permissions" test -z "$(id_token_outside_job "$wf")"
   check "$wf uses no azure/login action" not grep -qE 'uses:[[:space:]]+azure/login' "$wf"
   check "$wf reads secrets only into env variables" test -z "$(secret_not_assigned_to_env "$wf")"
+  check "$wf has exactly one job" test "$(sed -n '/^jobs:/,$p' "$wf" | grep -cE '^  [a-z][a-z0-9_-]*:$')" -eq 1
 done
 
 check "Deploy infra exists" test -f "$INFRA_WF"
@@ -295,6 +296,7 @@ check "Deploy infra uses no build or deploy identity" not grep -qE 'AZURE_(BUILD
 check "Deploy infra validates the commit before it logs in" wf_before "$INFRA_WF" 'Validate the commit' 'ci-azure-login.sh'
 check "Deploy infra installs a pinned Bicep before it deploys" wf_before "$INFRA_WF" 'az bicep install --version v' 'infra/deploy.sh'
 check "Deploy infra logs in before it deploys" wf_before "$INFRA_WF" 'ci-azure-login.sh' 'infra/deploy.sh'
+check "Deploy infra checks the Bicep binary's hash before it logs in" wf_before "$INFRA_WF" 'sha256sum --check --strict' 'ci-azure-login.sh'
 check "Deploy infra waits for healthy apps after it deploys" wf_before "$INFRA_WF" 'infra/deploy.sh' 'wait-healthy.sh'
 for var in GOOGLE_PLACES_API_KEY OPENAI_API_KEY SQL_SERVER SQL_DATABASE; do
   check "Deploy infra takes $var from the environment's secrets" \

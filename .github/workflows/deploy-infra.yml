@@ -48,7 +48,9 @@ jobs:
           echo "SHA=$sha" >> "$GITHUB_ENV"
 
       - name: Install the pinned Bicep CLI
-        run: az bicep install --version v0.49.2
+        run: |
+          az bicep install --version v0.49.2
+          echo "0ab9de90c2493f206f8281bae74f9ee2d5ed3605548dab1adf41fef185e1f7c5  $HOME/.azure/bin/bicep" | sha256sum --check --strict
 
       - name: Log in to Azure
         env:
@@ -67,3 +69,21 @@ jobs:
 
       - name: Wait for the new revisions
         run: ./scripts/wait-healthy.sh
+
+      - name: Summary
+        run: |
+          {
+            echo "### Infra deployed: ${SHA:-current tags}"
+            echo
+            for app in ca-restaurant-researcher-api ca-restaurant-researcher-agent ca-restaurant-researcher-web; do
+              if row=$(az containerapp show -n "$app" -g rg-chatbot \
+                --query "[properties.template.containers[0].image, properties.latestRevisionName]" \
+                -o tsv 2>/dev/null); then
+                image=$(echo "$row" | sed -n 1p)
+                revision=$(echo "$row" | sed -n 2p)
+                echo "- \`$app\`: \`$image\` (revision \`$revision\`)"
+              else
+                echo "- \`$app\`: not created yet"
+              fi
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
