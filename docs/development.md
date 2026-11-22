@@ -76,7 +76,7 @@ The browser tests (`frontend/e2e/`) serve `.next/standalone` laid out as the Doc
 
 `./scripts/ci-local.sh` runs the deploy-script and supply-chain tests, the backend checks and all of the above in CI order (plus `actionlint` when installed) and stops at the first failure.
 
-GitHub Actions (`.github/workflows/ci.yml`) runs the same checks on every pull request and on nothing else. Which jobs run on a draft, which once the PR is ready, and the docs-only skip: `CLAUDE.md`, "Commands".
+GitHub Actions (`.github/workflows/ci.yml`) runs the same checks on every pull request and on nothing else. Which jobs run on a draft, which once the PR is ready, and the docs-only skip: `AGENTS.md`, "Commands".
 
 `.github/workflows/security.yml` adds secret scanning and workflow linting on every pull request, plus a weekly dependency audit (`npm-audit`, also startable by hand from the Actions tab) that runs `scripts/audit-gate.mjs`. If it fails, open the run under Actions > Security: bump the vulnerable dependency, or, when the output says the exception is no longer needed, remove the exception; there is no PR to block, so the failure is the alert.
 
