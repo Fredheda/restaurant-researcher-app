@@ -91,6 +91,9 @@ jobs:
       - run: npm test
       - run: npm run lint
       - run: npx tsc --noEmit
+      - name: Audit gate tests
+        working-directory: .
+        run: ./scripts/tests/test-audit-gate.sh
 
   # Heavy: the production build and the browser tests, only once the PR is
   # ready for review.

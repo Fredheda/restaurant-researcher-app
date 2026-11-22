@@ -8,6 +8,7 @@ cd "$(dirname "$0")/.."
 
 ./scripts/tests/test-deploy-scripts.sh
 ./scripts/tests/test-supply-chain.sh
+./scripts/tests/test-audit-gate.sh
 
 # Backend: tests, lint, format, type-check (the `backend` job in ci.yml).
 if [ -f backend/pyproject.toml ]; then

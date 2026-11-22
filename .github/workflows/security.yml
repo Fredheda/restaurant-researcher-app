@@ -6,6 +6,7 @@ name: Security
 # the same checks.
 on:
   pull_request:
+  workflow_dispatch:
   schedule:
     - cron: "23 5 * * 1"
 
@@ -57,7 +58,7 @@ jobs:
   # Weekly only, and it fails visibly: a new advisory against an old
   # dependency must not fail an unrelated PR.
   npm-audit:
-    if: github.event_name == 'schedule'
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -70,4 +71,7 @@ jobs:
           node-version: 26
       # Match frontend/Dockerfile.
       - run: npm install -g npm@12.2.2
-      - run: npm audit --omit=dev --audit-level=high
+      - name: Audit
+        run: |
+          npm audit --omit=dev --json > "$RUNNER_TEMP/audit.json" || true
+          node ../scripts/audit-gate.mjs "$RUNNER_TEMP/audit.json"
