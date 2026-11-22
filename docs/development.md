@@ -31,12 +31,13 @@ To run an app locally, put the variables in your shell (never in the repo). `bac
 | `AZURE_CLIENT_ID` | deployed only | managed identity for SQL; unset means `az login` |
 | `APP_ENV` | optional | `local` accepts requests without the Easy Auth headers as a fixed dev user; refused when `SQL_SERVER` is set |
 
-Web app (read at runtime by `frontend/app/api/[...path]/route.ts`):
+Web app (read at runtime by `frontend/app/api/[...path]/route.ts` and `frontend/app/api/copilotkit/[[...slug]]/route.ts`):
 
 | Variable | Meaning |
 |---|---|
 | `API_URL` | origin of the api app (a path in it is ignored), for example `http://127.0.0.1:8000`. Unset or not http(s): `/api/*` answers 503. Deployed: the api's internal **https** address (with `allowInsecure` off, an `http://` call inside the environment is answered with a redirect, which the proxy turns into 502), set by the backend rollout |
-| `ALLOW_ANONYMOUS` | `true` lets a request without Easy Auth headers through, only when `API_URL` is loopback (local runs, where there is no Easy Auth). Never set it in a deployed app: it has no effect there, and the proxy answers 401 without a signed-in principal |
+| `ALLOW_ANONYMOUS` | `true` lets a request without Easy Auth headers through, only when `API_URL` is loopback (local runs, where there is no Easy Auth). Never set it in a deployed app: it has no effect there, and the proxy answers 401 without a signed-in principal. It applies to the api proxy only: `/api/copilotkit` has no local switch, so a local run of the chat needs the principal headers added by a forwarder on 127.0.0.1 |
+| `AGENT_URL` | origin of the agent app (a path in it is ignored), for example `http://127.0.0.1:8001`. Unset or not http(s): `/api/copilotkit` answers 503. Deployed: the agent's internal **https** address, set by the backend rollout. The runtime keeps conversations in memory (at most 200 threads, 20 runs per thread, 64 MiB): they start fresh after idle, and the web app must stay at one replica. The 200 threads are one budget shared by all users: one approved user can evict another's conversation |
 
 ```bash
 APP_ROLE=api APP_ENV=local GOOGLE_PLACES_API_KEY=... poetry run uvicorn app.main:app --port 8000
@@ -71,7 +72,7 @@ npm run e2e            # Playwright (Chromium) against the production build; run
 
 A 360 px browser test (`e2e/mobile.spec.ts`) guards the phone layout.
 
-The browser tests (`frontend/e2e/`) serve `.next/standalone` laid out as the Docker image does, beside a fake api (`frontend/e2e/fake-api.mjs`, port 3918, override with `E2E_API_PORT`), and need no network. First run: `npx playwright install chromium`. A failed run leaves a report in `frontend/playwright-report/`.
+The browser tests (`frontend/e2e/`) serve `.next/standalone` laid out as the Docker image does, beside a fake api (`frontend/e2e/fake-api.mjs`, port 3918, override with `E2E_API_PORT`) and a fake agent (`frontend/e2e/fake-agent.mjs`, port 3919, override with `E2E_AGENT_PORT`), and need no network. First run: `npx playwright install chromium`. A failed run leaves a report in `frontend/playwright-report/`.
 
 `./scripts/ci-local.sh` runs the deploy-script and supply-chain tests, the backend checks and all of the above in CI order (plus `actionlint` when installed) and stops at the first failure.
 
@@ -89,6 +90,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs the same checks on every pull r
 - **Docker images:** every `FROM` line and every `docker run` image in a workflow carries its digest after the tag (`image:tag@sha256:<64 hex>`), so a moved tag cannot change what runs. Dependabot bumps the `FROM` digests. The gitleaks and actionlint images in `.github/workflows/security.yml` are bumped by hand: look up the new tag's digest (`docker buildx imagetools inspect <image>:<tag> --format '{{.Manifest.Digest}}'`) and edit that one line.
 - **One Node major:** the `frontend/Dockerfile` stages, every `node-version` in the workflows and the `@types/node` range use the same Node major; bump them together.
 - **Override:** `frontend/package.json` overrides `iconv-lite` to 0.7.3: 0.6.3 (pulled in by `jsdom` through `whatwg-encoding`) ships an `.idea` folder that a sandboxed `npm ci` cannot write. Drop the override when `whatwg-encoding` no longer pins 0.6.3.
+- **CopilotKit overrides:** `frontend/package.json` overrides `zod` to the direct dependency (4.6.7: CopilotKit and AG-UI declare zod 3, which has no fix for GHSA-mrhx-c7xc-m3w5), `undici` to 6.29.1 (a pulled-in 5.29.0 has many advisories fixed in 6.x) and `graphql-scalars` to 2.0.1 (GHSA-x8rm-f576-gq67). The direct `zod` dependency exists only so the override can reference it. Remove each entry when CopilotKit's own ranges clear the advisory: delete it, run `npm install` and `npm audit --omit=dev --audit-level=high`.
 - `scripts/tests/test-supply-chain.sh` fails the PR when one of these rules is broken.
 
 ## Making a change

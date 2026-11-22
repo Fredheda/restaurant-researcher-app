@@ -6,7 +6,7 @@ The app is served at restaurants.frederikheda.com, behind Entra Easy Auth. It is
 
 Infra: the `cae-restaurant-researcher` Container Apps environment in the shared `rg-chatbot` resource group (westeurope), with no Log Analytics. It holds one app today, `ca-restaurant-researcher-web` (external ingress, `minReplicas: 0` / `maxReplicas: 1`, `0.25` CPU / `0.5Gi` memory). The backend apps `ca-restaurant-researcher-api` and `-agent` are added by infra later; the scripts skip them until they exist. Images live in the shared `acrchatbotfredheda` registry and are pulled via `id-restaurant-researcher-acrpull` (passwordless, managed identity).
 
-The app scales to zero, so the first request after idle takes about 15-40 seconds.
+The app scales to zero, so the first request after idle takes about 15-40 seconds. Once the assistant is wired to the agent app, it keeps conversations in the web app's memory, so after idle a conversation starts fresh, and the web app must stay at one replica: a second replica would answer a thread it does not hold with 404. Ingress ends a request after 240 seconds, so a longer agent run ends as an error in the chat.
 
 ## What to run, by what changed
 
