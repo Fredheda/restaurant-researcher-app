@@ -127,7 +127,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          count=$(gh pr view "$PR_NUMBER" --json comments --jq '[.comments[] | select(.createdAt >= env.RUN_STARTED) | .body | select(contains("Verdict: ready to merge") or contains("Verdict: changes requested"))] | length')
+          count=$(gh pr view "$PR_NUMBER" --json comments --jq '[.comments[] | select(.createdAt >= env.RUN_STARTED and (.author.login | test("^github-actions"))) | .body | select(contains("Verdict: ready to merge") or contains("Verdict: changes requested"))] | length')
           if [ "$count" -eq 0 ]; then
             echo "::error::The review posted no Verdict line; the review did not run to completion."
             exit 1
