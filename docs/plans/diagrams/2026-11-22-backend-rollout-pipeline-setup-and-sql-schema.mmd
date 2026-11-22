@@ -1,0 +1,57 @@
+flowchart TB
+  subgraph laptop["Owner laptop (az login, gh auth)"]
+    SETUP["scripts/setup-github-deploy.sh"]
+    OWNER["Owner: gh secret set NAME --env production (hidden prompt)"]
+  end
+
+  subgraph github["GitHub: Fredheda/restaurant-researcher-app"]
+    ENV["Environment production (main only, owner approves)"]
+    REPOSEC["Repo secrets: tenant, subscription, build, deploy, infra client ids"]
+    ENVSEC["Environment secrets: GOOGLE_PLACES_API_KEY, OPENAI_API_KEY, SQL_SERVER, SQL_DATABASE"]
+    WFDEPLOY["Deploy workflow"]
+    WFINFRA["Deploy infra workflow (RR-32)"]
+  end
+
+  subgraph azure["Azure: rg-chatbot identity and RBAC"]
+    IDBUILD["id-...-gh-build"]
+    IDDEPLOY["id-...-gh-deploy"]
+    IDINFRA["id-...-gh-infra"]
+    IDPULL["id-...-acrpull (web app)"]
+    IDBACKEND["id-...-backend (api and agent apps)"]
+    ROLE["Custom role: explicit actions, resource group scope"]
+    ACR["Registry acrchatbotfredheda"]
+  end
+
+  SETUP -->|"create if missing"| IDINFRA
+  SETUP -->|"create if missing"| IDBACKEND
+  SETUP -->|"create if missing"| IDPULL
+  SETUP -->|"AcrPull x2"| ACR
+  SETUP -->|"define or update"| ROLE
+  ROLE -->|"assigned at resource group"| IDINFRA
+  SETUP -->|"Managed Identity Operator on pull and backend identities"| IDINFRA
+  SETUP -->|"Managed Identity Operator on pull and backend identities"| IDDEPLOY
+  SETUP -->|"federated credential environment:production"| IDINFRA
+  SETUP -->|"stores AZURE_INFRA_CLIENT_ID"| REPOSEC
+  SETUP -.->|"lists missing secret names only"| ENVSEC
+  OWNER -->|"sets the four values"| ENVSEC
+  WFINFRA -->|"OIDC login"| IDINFRA
+  WFDEPLOY -->|"OIDC login"| IDDEPLOY
+  WFDEPLOY -->|"OIDC login"| IDBUILD
+
+  subgraph legend["Legend"]
+    LNEW["new"]
+    LCHANGED["changed"]
+    LSAME["unchanged"]
+  end
+
+  classDef new fill:#d4edda,stroke:#2e7d32,color:#111
+  classDef changed fill:#fff3cd,stroke:#b26a00,color:#111
+  classDef unchanged fill:#e9ecef,stroke:#6c757d,color:#111
+
+  class OWNER,ENVSEC,IDINFRA,IDBACKEND,ROLE,LNEW new
+  class SETUP,REPOSEC,IDDEPLOY,IDPULL,ACR,LCHANGED changed
+  class ENV,WFDEPLOY,WFINFRA,IDBUILD,LSAME unchanged
+
+  linkStyle 0,1,3,4,5,6,8,10,11,12 stroke:#2e7d32,stroke-width:2px
+  linkStyle 2,7,9 stroke:#b26a00,stroke-width:2px
+  linkStyle 13,14 stroke:#6c757d,stroke-width:2px

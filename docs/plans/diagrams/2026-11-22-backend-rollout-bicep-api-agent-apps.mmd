@@ -1,0 +1,63 @@
+flowchart TB
+  classDef new fill:#d4f4dd,stroke:#2da44e,color:#0b3d1a
+  classDef changed fill:#fff1c9,stroke:#d29922,color:#4a3500
+  classDef unchanged fill:#e8eaed,stroke:#8c959f,color:#24292f
+
+  legend["Legend: green = new, amber = changed, grey = unchanged or from another PR (same colours on arrows)"]:::unchanged
+
+  subgraph GH["GitHub (repo Fredheda/restaurant-researcher-app)"]
+    runner["Deploy infra workflow runs infra/deploy.sh (RR-70); env values from production secrets"]:::unchanged
+    dep["Deploy workflow: build, roll, lock tags"]:::unchanged
+  end
+
+  subgraph SCR["Repo scripts"]
+    deploysh["infra/deploy.sh: env checks, per-app tags, image check, key file"]:::changed
+    bicep["infra/main.bicep"]:::changed
+  end
+
+  subgraph ID["Azure identity and RBAC (created by setup script, RR-33, never by Bicep)"]
+    backendid["id-restaurant-researcher-backend + AcrPull"]:::unchanged
+    pullid["id-restaurant-researcher-acrpull + AcrPull (no longer in the Bicep file)"]:::changed
+    envnode["Container Apps environment cae-restaurant-researcher (existing, no longer created by Bicep)"]:::changed
+  end
+
+  subgraph WEB["Web app"]
+    webapp["ca-restaurant-researcher-web: external, env API_URL and AGENT_URL"]:::changed
+    easy["Easy Auth secret and custom domain"]:::unchanged
+  end
+
+  subgraph BE["Backend apps (internal ingress, scale 0 to 1)"]
+    api["ca-restaurant-researcher-api"]:::new
+    agent["ca-restaurant-researcher-agent"]:::new
+  end
+
+  subgraph DATA["Data and external services"]
+    sql["Azure SQL"]:::unchanged
+    places["Google Places"]:::unchanged
+    openai["OpenAI"]:::unchanged
+  end
+
+  runner --> deploysh
+  deploysh --> bicep
+  bicep --> webapp
+  bicep --> api
+  bicep --> agent
+  bicep -. "existing" .-> backendid
+  bicep -. "existing" .-> pullid
+  bicep -. "existing" .-> envnode
+  api -. "runs as" .-> backendid
+  agent -. "runs as" .-> backendid
+  webapp -. "pulls as" .-> pullid
+  webapp -- "API_URL https internal" --> api
+  webapp -- "AGENT_URL https internal" --> agent
+  api -- "Entra token" --> sql
+  agent -- "Entra token" --> sql
+  api --> places
+  agent --> places
+  agent --> openai
+  dep --> webapp
+  easy -.- webapp
+
+  linkStyle 3,4,8,9,11,12,13,14,15,16,17 stroke:#2da44e,stroke-width:2px
+  linkStyle 1,2,5,6,7 stroke:#d29922,stroke-width:2px
+  linkStyle 0,10,18,19 stroke:#8c959f,stroke-width:2px
