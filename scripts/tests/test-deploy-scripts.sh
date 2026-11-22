@@ -142,7 +142,6 @@ check() { # check <name> <command...>
   if "$@"; then pass "$name"; else fail "$name"; fi
 }
 not() { ! "$@"; }
-# line number of the first log line matching a pattern (0 if none)
 at() { grep -n -- "$1" "$LOG" | head -1 | cut -d: -f1; }
 before() { local a b; a=$(at "$1"); b=$(at "$2"); [ -n "$a" ] && [ -n "$b" ] && [ "$a" -lt "$b" ]; }
 
@@ -218,7 +217,6 @@ check "redeploy fails when a rollout fails" test "$rc" -ne 0
 check "failed rollout changes no lock" not called "repository update"
 check "failed rollout leaves the web app untouched" not called "update -n $WEB_APP"
 
-# Before the backend apps exist, Deploy keeps working for the web app alone.
 BACKEND_ABSENT="$API_APP,$AGENT_APP"
 FAKE_ABSENT="$BACKEND_ABSENT" FAKE_MISSING="$BACKEND:$SHA" FAKE_IMAGES="$WEB_APP=$REG/$WEB:$OLD" \
   run ./scripts/redeploy.sh "$SHA"
@@ -235,7 +233,6 @@ check "that refusal changes nothing" not called "containerapp update"
 FAKE_ABSENT="$API_APP,$AGENT_APP,$WEB_APP" run ./scripts/redeploy.sh "$SHA"
 check "redeploy fails when no app exists" test "$rc" -ne 0
 
-# An az failure other than "not found" must never look like a missing app.
 FAKE_BROKEN="$WEB_APP" run ./scripts/redeploy.sh "$SHA"
 check "redeploy fails on an az error, not skipping the app" test "$rc" -ne 0
 check "that failure changes nothing" not called "containerapp update"
