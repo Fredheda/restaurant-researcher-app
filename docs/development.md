@@ -46,7 +46,7 @@ curl -s localhost:8000/api/searches -H 'content-type: application/json' -d '{"qu
 
 With the in-memory store, a search the agent ran is not visible to a separate local api process.
 
-The schema scripts in `backend/sql/` are idempotent and applied by hand by the owner before the first deploy; the apps never run DDL.
+The schema scripts in `backend/sql/` are idempotent and applied by the owner before the first deploy with `./scripts/apply-schema.sh`: it needs `az login`, `SQL_SERVER` and `SQL_DATABASE` in the shell and the caller's IP on the SQL server firewall; `--dry-run` and `--check` need none of them, and `--verify` only reads. `003_backend_identity.sql` needs the signed-in user to be the server's Microsoft Entra admin. The apps never run DDL.
 
 ## Install and run
 

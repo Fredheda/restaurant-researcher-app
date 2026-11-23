@@ -1,0 +1,89 @@
+name: Deploy infra
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Full commit SHA to put on all three apps (empty = each app keeps the tag it runs now)
+        required: false
+        default: ""
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-infra:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate the commit
+        env:
+          INPUT_SHA: ${{ inputs.sha }}
+        run: |
+          sha="$(echo "$INPUT_SHA" | tr -d '[:space:]')"
+          if [ -n "$sha" ]; then
+            if ! echo "$sha" | grep -Eq '^[0-9a-f]{40}$'; then
+              echo "::error::'$sha' is not a full 40-character commit SHA."
+              exit 1
+            fi
+            if ! git merge-base --is-ancestor "$sha" origin/main; then
+              echo "::error::$sha is not on main; only merged commits can be deployed."
+              exit 1
+            fi
+          fi
+          echo "SHA=$sha" >> "$GITHUB_ENV"
+
+      - name: Install the pinned Bicep CLI
+        run: |
+          az bicep install --version v0.49.2
+          echo "0ab9de90c2493f206f8281bae74f9ee2d5ed3605548dab1adf41fef185e1f7c5  $HOME/.azure/bin/bicep" | sha256sum --check --strict
+
+      - name: Log in to Azure
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          CLIENT_ID: ${{ secrets.AZURE_INFRA_CLIENT_ID }}
+        run: ./scripts/ci-azure-login.sh "$CLIENT_ID"
+
+      - name: Deploy infra
+        env:
+          GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          SQL_SERVER: ${{ secrets.SQL_SERVER }}
+          SQL_DATABASE: ${{ secrets.SQL_DATABASE }}
+        run: ./infra/deploy.sh ${SHA:+"$SHA"}
+
+      - name: Wait for the new revisions
+        run: ./scripts/wait-healthy.sh
+
+      - name: Summary
+        run: |
+          {
+            echo "### Infra deployed: ${SHA:-current tags}"
+            echo
+            for app in ca-restaurant-researcher-api ca-restaurant-researcher-agent ca-restaurant-researcher-web; do
+              if row=$(az containerapp show -n "$app" -g rg-chatbot \
+                --query "[properties.template.containers[0].image, properties.latestRevisionName]" \
+                -o tsv 2>/dev/null); then
+                image=$(echo "$row" | sed -n 1p)
+                revision=$(echo "$row" | sed -n 2p)
+                echo "- \`$app\`: \`$image\` (revision \`$revision\`)"
+              else
+                echo "- \`$app\`: not created yet"
+              fi
+            done
+          } >> "$GITHUB_STEP_SUMMARY"

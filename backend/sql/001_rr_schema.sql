@@ -1,5 +1,6 @@
--- Schema rr: the place cache and search history. Idempotent; applied by hand
--- by the owner before the first deploy (the apps never run DDL).
+-- Schema rr: the place cache and search history. Idempotent; applied by the
+-- owner with ./scripts/apply-schema.sh before the first deploy (the apps never
+-- run DDL).
 
 IF SCHEMA_ID('rr') IS NULL
     EXEC('CREATE SCHEMA rr');

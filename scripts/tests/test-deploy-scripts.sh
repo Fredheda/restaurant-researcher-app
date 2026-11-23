@@ -122,6 +122,11 @@ esac
 exit 0
 EOF
 chmod +x "$tmp/bin/gh"
+cat >"$tmp/bin/poetry" <<'EOF'
+#!/usr/bin/env bash
+echo "$PWD $*" >> "$FAKE_LOG.poetry"
+EOF
+chmod +x "$tmp/bin/poetry"
 
 SHA=$(git rev-parse HEAD)
 OLD=1111111111111111111111111111111111111111
@@ -270,6 +275,38 @@ check "wait-healthy fails on Failed" test "$rc" -eq 1
 
 FAKE_PROVISIONING=Provisioning run ./scripts/wait-healthy.sh 1 0
 check "wait-healthy times out" test "$rc" -eq 1
+
+INFRA_WF=.github/workflows/deploy-infra.yml
+wf_line() { grep -n -- "$2" "$1" | head -1 | cut -d: -f1; }
+wf_before() { local a b; a=$(wf_line "$1" "$2"); b=$(wf_line "$1" "$3"); [ -n "$a" ] && [ -n "$b" ] && [ "$a" -lt "$b" ]; }
+id_token_outside_job() { grep -E 'id-token:' "$1" | grep -vE '^ {6}id-token: write$'; }
+secret_not_assigned_to_env() { grep -E 'secrets\.' "$1" | grep -vE '^ +[A-Z_]+: \$\{\{ secrets\.[A-Z_]+ \}\}$'; }
+workflow_triggers() { sed -n '/^on:/,/^[a-z]/p' "$1" | grep -E '^  [a-z_]+:'; }
+
+for wf in .github/workflows/deploy.yml "$INFRA_WF"; do
+  check "$wf starts only by hand" test "$(workflow_triggers "$wf")" = '  workflow_dispatch:'
+  check "$wf runs only from main" grep -qxF "    if: github.ref == 'refs/heads/main'" "$wf"
+  check "$wf waits for the production environment" grep -qx '    environment: production' "$wf"
+  check "$wf never cancels a running deploy" grep -qx '  cancel-in-progress: false' "$wf"
+  check "$wf keeps the git token off disk" grep -q 'persist-credentials: false' "$wf"
+  check "$wf asks for id-token only in the job's permissions" test -z "$(id_token_outside_job "$wf")"
+  check "$wf uses no azure/login action" not grep -qE 'uses:[[:space:]]+azure/login' "$wf"
+  check "$wf reads secrets only into env variables" test -z "$(secret_not_assigned_to_env "$wf")"
+  check "$wf has exactly one job" test "$(sed -n '/^jobs:/,$p' "$wf" | grep -cE '^  [a-z][a-z0-9_-]*:$')" -eq 1
+done
+
+check "Deploy infra exists" test -f "$INFRA_WF"
+check "Deploy infra logs in as the infra identity" grep -qF 'CLIENT_ID: ${{ secrets.AZURE_INFRA_CLIENT_ID }}' "$INFRA_WF"
+check "Deploy infra uses no build or deploy identity" not grep -qE 'AZURE_(BUILD|DEPLOY)_CLIENT_ID' "$INFRA_WF"
+check "Deploy infra validates the commit before it logs in" wf_before "$INFRA_WF" 'Validate the commit' 'ci-azure-login.sh'
+check "Deploy infra installs a pinned Bicep before it deploys" wf_before "$INFRA_WF" 'az bicep install --version v' 'infra/deploy.sh'
+check "Deploy infra logs in before it deploys" wf_before "$INFRA_WF" 'ci-azure-login.sh' 'infra/deploy.sh'
+check "Deploy infra checks the Bicep binary's hash before it logs in" wf_before "$INFRA_WF" 'sha256sum --check --strict' 'ci-azure-login.sh'
+check "Deploy infra waits for healthy apps after it deploys" wf_before "$INFRA_WF" 'infra/deploy.sh' 'wait-healthy.sh'
+for var in GOOGLE_PLACES_API_KEY OPENAI_API_KEY SQL_SERVER SQL_DATABASE; do
+  check "Deploy infra takes $var from the environment's secrets" \
+    grep -qF "$var: \${{ secrets.$var }}" "$INFRA_WF"
+done
 
 # --- infra/main.bicep -----------------------------------------------------
 # The identity that deploys this file cannot write roles, identities or the
@@ -445,6 +482,10 @@ check "setup never sets a key or a SQL name" \
 
 FAKE_SECRETS="GOOGLE_PLACES_API_KEY,OPENAI_API_KEY,SQL_SERVER,SQL_DATABASE" run ./scripts/setup-github-deploy.sh
 check "setup stays quiet when all four environment secrets exist" not printed "environment secret missing"
+
+run ./scripts/apply-schema.sh --check
+check "apply-schema runs the module from backend/ and passes the flags on" \
+  grep -qx "$ROOT/backend run python -m tools.apply_schema --check" "$LOG.poetry"
 
 [ "$failures" -eq 0 ] && echo "deploy script tests: all passed" || echo "deploy script tests: $failures failed"
 exit "$failures"

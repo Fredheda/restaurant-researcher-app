@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Guards the supply-chain rules of this repo:
 #   1. a 14-day install cooldown for npm and Poetry, with no exclusions;
-#   2. no pip or pipx install from a version range;
+#   2. no pip, pipx or az bicep install from a version range;
 #   3. every GitHub Action pinned by commit, with its version as a comment;
 #   4. every Docker image pinned by digest, one digest per base image;
 #   5. one Node major in frontend/Dockerfile, every CI setup-node and @types/node.
@@ -63,7 +63,13 @@ poetry_pins() {
 npx_yes() {
   grep -rnE 'npx[[:space:]]+(-y|--yes)' .github/workflows scripts/ci-local.sh
 }
+loose_bicep_installs() {
+  # shellcheck disable=SC2086
+  grep -rnE 'az bicep (install|upgrade)' $INSTALL_SOURCES infra |
+    grep -vE 'az bicep install --version v[0-9]+\.[0-9]+\.[0-9]+([[:space:]]|$)'
+}
 check "pip and pipx install only exact versions" none loose_installs
+check "Bicep is installed only with an exact version, never upgraded" none loose_bicep_installs
 check "CI and the Dockerfile install one Poetry version" test "$(poetry_pins | wc -l | tr -d ' ')" = 1
 check "no npx -y" none npx_yes
 
