@@ -122,6 +122,11 @@ esac
 exit 0
 EOF
 chmod +x "$tmp/bin/gh"
+cat >"$tmp/bin/poetry" <<'EOF'
+#!/usr/bin/env bash
+echo "$PWD $*" >> "$FAKE_LOG.poetry"
+EOF
+chmod +x "$tmp/bin/poetry"
 
 SHA=$(git rev-parse HEAD)
 OLD=1111111111111111111111111111111111111111
@@ -477,6 +482,10 @@ check "setup never sets a key or a SQL name" \
 
 FAKE_SECRETS="GOOGLE_PLACES_API_KEY,OPENAI_API_KEY,SQL_SERVER,SQL_DATABASE" run ./scripts/setup-github-deploy.sh
 check "setup stays quiet when all four environment secrets exist" not printed "environment secret missing"
+
+run ./scripts/apply-schema.sh --check
+check "apply-schema runs the module from backend/ and passes the flags on" \
+  grep -qx "$ROOT/backend run python -m tools.apply_schema --check" "$LOG.poetry"
 
 [ "$failures" -eq 0 ] && echo "deploy script tests: all passed" || echo "deploy script tests: $failures failed"
 exit "$failures"
